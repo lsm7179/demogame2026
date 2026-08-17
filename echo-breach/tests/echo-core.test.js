@@ -104,3 +104,12 @@ test("completed recordings retain only the newest Echo slots", () => {
 test("empty recordings return no replay pose", () => {
   assert.equal(EchoCore.interpolatePose([], 1), null);
 });
+
+test("automatic fire only runs during live play with the pointer inside", () => {
+  const ready = { mode: "playing", paused: false, mouseInside: true, alive: true };
+  assert.equal(EchoCore.canAutoFire(ready), true);
+  assert.equal(EchoCore.canAutoFire({ ...ready, mode: "loopTransition" }), false);
+  assert.equal(EchoCore.canAutoFire({ ...ready, paused: true }), false);
+  assert.equal(EchoCore.canAutoFire({ ...ready, mouseInside: false }), false);
+  assert.equal(EchoCore.canAutoFire({ ...ready, alive: false }), false);
+});

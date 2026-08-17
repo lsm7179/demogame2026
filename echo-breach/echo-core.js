@@ -51,8 +51,13 @@
     return next;
   }
 
+  function canAutoFire({ mode, paused, mouseInside, alive }) {
+    return mode === "playing" && !paused && mouseInside && alive;
+  }
+
   return {
     appendRecording,
+    canAutoFire,
     collectDueEvents,
     interpolatePose,
     shortestAngleDelta,

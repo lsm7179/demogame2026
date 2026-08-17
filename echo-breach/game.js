@@ -9,7 +9,7 @@ const BASE = Object.freeze({
   ACCEL: 13,
   PLAYER_SPEED: 265,
   PLAYER_HP: 100,
-  FIRE_RATE: 0.115,
+  FIRE_RATE: 0.22,
   BULLET_SPEED: 760,
   PLAYER_DAMAGE: 12,
   DASH_SPEED: 720,
@@ -303,7 +303,7 @@ let raf = 0,
   muted = save.muted,
   view = { scale: 1, ox: 0, oy: 0 };
 const keys = Object.create(null),
-  mouse = { x: 640, y: 360, down: false, inside: false };
+  mouse = { x: 640, y: 360, inside: false };
 function freshState() {
   return {
     mode: "title",
@@ -416,18 +416,7 @@ function bindInputs() {
     mouse.inside = true;
   });
   canvas.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || state.mode !== "playing") return;
-    mouse.down = true;
-    initAudio();
-    if (stats.weapon === "charge") {
-      state.charging = true;
-      state.charge = 0;
-    }
-  });
-  addEventListener("pointerup", (e) => {
-    if (e.button !== 0) return;
-    mouse.down = false;
-    if (state.mode === "playing" && state.charging) releaseCharge(false);
+    if (e.button === 0) initAudio();
   });
   canvas.addEventListener("pointerleave", () => (mouse.inside = false));
   addEventListener("blur", () => {
@@ -567,9 +556,21 @@ function updatePlayer(dt) {
       player.dashCd = player.dashStock < stats.dashCharges ? stats.dashCd : 0;
     }
   }
-  if (stats.weapon === "charge" && state.charging) state.charge = Math.min(1.25, state.charge + dt);
-  else if (mouse.down && player.fireCd <= 0)
+  const autoFire = EchoCore.canAutoFire({
+    mode: state.mode,
+    paused: state.paused,
+    mouseInside: mouse.inside,
+    alive: player.hp > 0,
+  });
+  if (stats.weapon === "charge") {
+    state.charging = autoFire;
+    if (autoFire) {
+      state.charge = Math.min(1.25, state.charge + dt);
+      if (state.charge >= 1.25) releaseCharge(false);
+    }
+  } else if (autoFire && player.fireCd <= 0) {
     fireWeapon(player, false, makeShotProfile(player.angle));
+  }
   recordSnapshot();
   state.history.push({ t: state.elapsed, x: player.x, y: player.y });
   while (state.history.length && state.history[0].t < state.elapsed - 2.2) state.history.shift();
@@ -587,7 +588,7 @@ function makeShotProfile(angle, charge = 0) {
     charge,
   };
   if (stats.weapon === "split")
-    Object.assign(p, { count: 3, spread: 0.16, damage: stats.playerDamage * 0.7 });
+    Object.assign(p, { count: 3, spread: 0.16, damage: stats.playerDamage * 0.45 });
   if (stats.weapon === "pulse")
     Object.assign(p, { damage: stats.playerDamage * 1.55, pierce: 3, size: 6, speed: 650 });
   if (stats.weapon === "charge")
@@ -778,6 +779,7 @@ function spawnEnemy(w) {
     fire: 1 + Math.random(),
     touch: 0,
     wobble: Math.random() * 6.28,
+    hitFlash: 0,
   });
 }
 function enemyShoot(e, target) {
@@ -802,6 +804,7 @@ function updateEnemies(dt) {
     e.touch -= dt;
     e.fire -= dt;
     e.wobble += dt;
+    e.hitFlash = Math.max(0, e.hitFlash - dt);
     const target = e.targetShuttle && shuttle && shuttle.hp > 0 ? shuttle : player;
     let tx = target.x,
       ty = target.y;
@@ -900,6 +903,7 @@ function updateBullets(dt) {
 }
 function damageEnemy(e, dmg, byEcho) {
   e.hp -= dmg;
+  e.hitFlash = 0.09;
   burst(e.x, e.y, "#ff3f63", 5, 100);
   if (e.hp <= 0) {
     e.alive = false;
@@ -1089,6 +1093,7 @@ function resetLoopWorld() {
   state.ending = false;
   state.history = [];
   state.charging = false;
+  state.charge = 0;
   echoes = recordings.map(makeEcho);
   queueEnemies();
   beginRecording();
@@ -1114,7 +1119,7 @@ function startStage() {
 function endLoop(reason) {
   if (state.ending || state.mode !== "playing") return;
   state.ending = true;
-  if (state.charging) releaseCharge(false);
+  state.charging = false;
   state.current.alive = reason !== "death";
   if (stats.override) {
     state.mode = "recordOverride";
@@ -1454,11 +1459,33 @@ function renderActor(o, isEcho) {
   ctx.globalAlpha = isEcho ? 0.62 : 1;
   ctx.shadowBlur = 15;
   ctx.shadowColor = isEcho ? "#45f5e9" : "#ffb45d";
-  ctx.fillStyle = isEcho ? "#45f5e9" : "#f5f8ff";
-  poly(0, 0, o.r, 5);
+  const suit = isEcho ? "#45f5e9" : "#f5f8ff";
+  const accent = isEcho ? "#77fff5" : "#ffab55";
+  ctx.strokeStyle = suit;
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-7, 7);
+  ctx.lineTo(-11, 17);
+  ctx.moveTo(3, 8);
+  ctx.lineTo(6, 18);
+  ctx.stroke();
+  ctx.fillStyle = suit;
+  ctx.beginPath();
+  ctx.roundRect(-10, -10, 20, 23, 7);
   ctx.fill();
-  ctx.fillStyle = isEcho ? "#77fff5" : "#ffab55";
-  ctx.fillRect(7, -4, 22, 8);
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(-1, -15, 7, 0, 6.283);
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(2, -5);
+  ctx.lineTo(15, -1);
+  ctx.stroke();
+  ctx.fillStyle = accent;
+  ctx.fillRect(10, -4, 22, 7);
   if (!isEcho && state.charging) {
     ctx.strokeStyle = "#ffe18a";
     ctx.lineWidth = 3;
@@ -1474,21 +1501,40 @@ function renderEchoes() {
 function renderEnemies() {
   for (const e of enemies)
     if (e.alive) {
-      ctx.fillStyle = e.targetShuttle
+      const color = e.targetShuttle
         ? "#d43f8e"
         : e.type === "blocker"
           ? "#871d3b"
           : e.type === "shooter"
             ? "#ba2949"
             : "#f03b56";
-      poly(
-        e.x,
-        e.y,
-        e.r,
-        e.type === "blocker" ? 6 : e.type === "shooter" ? 4 : 3,
-        performance.now() * 0.0005
-      );
+      const pulse = 1 + Math.sin(e.wobble * 4) * 0.06;
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = e.type === "blocker" ? 7 : 4;
+      ctx.lineCap = "round";
+      for (let i = 0; i < (e.type === "blocker" ? 6 : 4); i++) {
+        const a = (i / (e.type === "blocker" ? 6 : 4)) * Math.PI * 2 + e.wobble * 0.25;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * e.r * 0.55, Math.sin(a) * e.r * 0.55);
+        ctx.quadraticCurveTo(
+          Math.cos(a + 0.35) * e.r,
+          Math.sin(a + 0.35) * e.r,
+          Math.cos(a) * e.r * 1.35,
+          Math.sin(a) * e.r * 1.35
+        );
+        ctx.stroke();
+      }
+      ctx.fillStyle = e.hitFlash > 0 ? "#fff" : color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, e.r * pulse, e.r * 0.82, e.wobble * 0.1, 0, 6.283);
       ctx.fill();
+      ctx.fillStyle = "#fff1f4";
+      ctx.beginPath();
+      ctx.arc(e.type === "shooter" ? 4 : 0, -2, e.type === "blocker" ? 4 : 3, 0, 6.283);
+      ctx.fill();
+      ctx.restore();
       ctx.fillStyle = "#ff9aaa";
       ctx.fillRect(e.x - e.r, e.y - e.r - 8, (e.r * 2 * e.hp) / e.maxHp, 3);
     }
