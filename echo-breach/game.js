@@ -534,6 +534,7 @@ function makePlayer() {
     animTime: 0,
     motion: 0,
     recoil: 0,
+    hurtAnim: 0,
   };
 }
 function updatePlayer(dt) {
@@ -559,6 +560,7 @@ function updatePlayer(dt) {
   player.fireCd -= dt;
   player.invuln -= dt;
   player.recoil = Math.max(0, player.recoil - dt * 9);
+  player.hurtAnim = Math.max(0, player.hurtAnim - dt * 7);
   player.motion = clamp(Math.hypot(player.vx, player.vy) / stats.speed, 0, 1);
   player.animTime += dt * (2.5 + player.motion * 8);
   if (player.dashStock < stats.dashCharges) {
@@ -680,6 +682,7 @@ function hurtPlayer(raw, from) {
     player.y = h.y;
     player.hp = Math.max(28, stats.maxHp * 0.3);
     player.invuln = 1;
+    player.hurtAnim = 1;
     state.emergencyUsed = true;
     burst(player.x, player.y, "#45f5e9", 30, 240);
     tone("sine", 250, 0.5, 0.08, 700);
@@ -689,6 +692,7 @@ function hurtPlayer(raw, from) {
   state.damageTaken += dmg;
   state.noHit = false;
   player.invuln = 0.45;
+  player.hurtAnim = 1;
   shake = 12;
   flash = 0.22;
   hitStop = 0.04;
@@ -1521,49 +1525,64 @@ function renderObjectives() {
 function renderActor(o, isEcho) {
   ctx.save();
   ctx.translate(o.x, o.y);
-  ctx.rotate(o.angle);
+  const facing = Math.round(o.angle / (Math.PI / 4)) * (Math.PI / 4);
+  const hurt = isEcho ? 0 : o.hurtAnim || 0;
+  ctx.translate(Math.sin(hurt * 28) * hurt * 3, 0);
+  ctx.rotate(facing);
   ctx.globalAlpha = isEcho ? 0.62 : 1;
   ctx.shadowBlur = 15;
   ctx.shadowColor = isEcho ? "#45f5e9" : "#ffb45d";
-  const suit = isEcho ? "#45f5e9" : "#f5f8ff";
+  const suit = isEcho ? "#45f5e9" : hurt > 0.45 ? "#ff637b" : "#f5f8ff";
   const accent = isEcho ? "#77fff5" : "#ffab55";
   const stride = Math.sin(o.animTime || 0) * 5 * (o.motion || 0);
-  const bob = Math.abs(Math.sin(o.animTime || 0)) * 1.5 * (o.motion || 0);
+  const bob = Math.abs(Math.sin(o.animTime || 0)) * 1.2 * (o.motion || 0);
   const recoil = (o.recoil || 0) * 5;
-  const dashLean = o.dashLeft > 0 ? 4 : 0;
+  const dashing = o.dashLeft > 0;
+  if (dashing) ctx.scale(1.16, 0.86);
+
+  // 다리: 진행 방향의 뒤쪽에서 좌우 보폭이 교차한다.
   ctx.strokeStyle = suit;
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 6;
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(-6 - dashLean, 7 + bob);
-  ctx.lineTo(-11 - dashLean, 17 + stride);
-  ctx.moveTo(3 - dashLean, 8 + bob);
-  ctx.lineTo(7 - dashLean, 18 - stride);
+  ctx.moveTo(-6, -5);
+  ctx.lineTo(-15 - stride, -7);
+  ctx.moveTo(-6, 5);
+  ctx.lineTo(-15 + stride, 7);
   ctx.stroke();
+
+  // 어깨와 몸통: 위에서 본 방탄복 형태.
   ctx.fillStyle = suit;
   ctx.beginPath();
-  ctx.roundRect(-10 - dashLean, -10 + bob, 20, 23, 7);
+  ctx.roundRect(-9 - bob, -10, 19, 20, 7);
   ctx.fill();
   ctx.fillStyle = isEcho ? "rgba(8,44,50,.7)" : "#26334a";
-  ctx.fillRect(-7 - dashLean, -5 + bob, 12, 8);
+  ctx.fillRect(-6 - bob, -7, 10, 14);
+
+  // 머리와 바이저: 몸통 앞쪽에 배치해 바라보는 방향을 읽게 한다.
   ctx.fillStyle = accent;
   ctx.beginPath();
-  ctx.arc(-1 - dashLean, -15 + bob, 7, 0, 6.283);
+  ctx.arc(9 - bob, 0, 7, 0, 6.283);
   ctx.fill();
   ctx.fillStyle = isEcho ? "#bafffa" : "#182033";
-  ctx.fillRect(1 - dashLean, -18 + bob, 5, 3);
+  ctx.fillRect(11 - bob, -4, 4, 8);
+
+  // 총기는 연속 조준각을 유지한다. 몸만 8방향으로 스냅된다.
+  ctx.save();
+  ctx.rotate(o.angle - facing);
   ctx.strokeStyle = accent;
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(1 - dashLean, -5 + bob);
-  ctx.lineTo(14 - recoil, -1);
-  ctx.moveTo(-3 - dashLean, -3 + bob);
-  ctx.lineTo(10 - recoil, 3);
+  ctx.moveTo(1, -7);
+  ctx.lineTo(13 - recoil, -3);
+  ctx.moveTo(1, 7);
+  ctx.lineTo(13 - recoil, 3);
   ctx.stroke();
-  ctx.fillStyle = accent;
-  ctx.fillRect(9 - recoil, -4, 23, 7);
+  ctx.fillStyle = isEcho ? "#77fff5" : "#d8e2ed";
+  ctx.fillRect(9 - recoil, -4, 25, 8);
   ctx.fillStyle = isEcho ? "#d5fffc" : "#fff1d7";
-  ctx.fillRect(27 - recoil, -2, 7, 3);
+  ctx.fillRect(29 - recoil, -2, 8, 4);
+  ctx.restore();
   if (!isEcho && state.charging) {
     ctx.strokeStyle = "#ffe18a";
     ctx.lineWidth = 3;

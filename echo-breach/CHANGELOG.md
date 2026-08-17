@@ -7,6 +7,7 @@ All notable ECHO BREACH changes are recorded here. The project follows Semantic 
 ### Added
 
 - Added walking, dash lean, and weapon recoil animation to human ECHO-07 agents and Echoes.
+- Clarified the human agents as eight-direction top-down silhouettes with continuous weapon aim and hit reactions.
 - Distinguished RIFT HOUND, SPORE CASTER, and ANCHOR BRUTE silhouettes and hit/death feedback.
 - Converted Stages 1–3 to data-driven connected rooms, walls, passages, and safe spawn points.
 - Added monster balance and room reachability regression tests.
