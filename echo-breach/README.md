@@ -48,9 +48,11 @@ npm run check
 
 ## 플레이 가능한 스테이지
 
-- **Stage 1 — AWAKENING:** 고정 릴레이 3개로 Echo 동기화의 기본을 익힙니다.
-- **Stage 2 — SPLIT CURRENT:** Echo가 스위치를 사격해 중앙 장벽을 여는 동안 플레이어가 건너가 이동 릴레이를 처리합니다.
-- **Stage 3 — RESCUE WINDOW:** 일부 적이 탈출선을 노립니다. 호위 사격 기록과 Anchor 공격 역할을 나누며, 탈출선이 파괴돼도 스테이지는 계속됩니다.
+- **Stage 1 — AWAKENING:** 진입실, Anchor 연구실과 양쪽 릴레이 측실을 오가며 Echo 동기화의 기본을 익힙니다.
+- **Stage 2 — SPLIT CURRENT:** 스위치 제어실의 Echo가 사격을 계속해야 중앙 통로가 열리고 반대편 Anchor실로 진입할 수 있습니다.
+- **Stage 3 — RESCUE WINDOW:** 탈출선 격납고를 호위하는 기록을 남긴 뒤 연결 통로를 지나 릴레이실과 Anchor 제어실을 공략합니다.
+
+ECHO-07과 Echo는 보행, 대시 기울기와 총기 반동을 가진 인간 요원 실루엣으로 표현됩니다. 시간 오염체는 추격형 **RIFT HOUND**, 원거리형 **SPORE CASTER**, 릴레이 차단형 **ANCHOR BRUTE**로 역할과 외형이 구분됩니다.
 
 ## 난이도
 
@@ -72,6 +74,8 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `style.css`: 반응형 SF 인터페이스
 - `game.js`: 데이터, 저장, 전투, Echo 기록/재생, 스테이지 규칙
 - `game-balance.js`: 자동 사격과 무기 핵심 밸런스 상수
+- `monster-data.js`: 시간 오염 몬스터 역할과 기존 전투 수치
+- `room-data.js`: Stage 1~3 방, 벽, 통로와 안전한 생성 지점
 - `echo-core.js`: 브라우저와 Node 테스트가 공유하는 순수 Echo 시간 로직
 - `version.json`: 공개 게임 버전과 저장 스키마 버전
 - `manifest.webmanifest`: 설치·출시 메타데이터

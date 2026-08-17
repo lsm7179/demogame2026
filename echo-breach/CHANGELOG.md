@@ -2,6 +2,19 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.3.0] - 2026-08-17
+
+### Added
+
+- Added walking, dash lean, and weapon recoil animation to human ECHO-07 agents and Echoes.
+- Distinguished RIFT HOUND, SPORE CASTER, and ANCHOR BRUTE silhouettes and hit/death feedback.
+- Converted Stages 1–3 to data-driven connected rooms, walls, passages, and safe spawn points.
+- Added monster balance and room reachability regression tests.
+
+### Preserved
+
+- Kept Echo world coordinates, monster combat stats, automatic-fire cadence, and save schema v2.
+
 ## [0.2.0] - 2026-08-17
 
 ### Changed

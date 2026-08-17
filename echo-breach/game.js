@@ -285,6 +285,7 @@ let save = loadSave(),
   relays = [],
   switches = [],
   walls = [],
+  rooms = [],
   shuttle = null,
   enemies = [],
   bullets = [],
@@ -502,6 +503,8 @@ function constrain(o, oldX) {
   }
 }
 function randomEdge() {
+  const points = RoomData[stage.id]?.spawnPoints;
+  if (points?.length) return { ...points[Math.floor(Math.random() * points.length)] };
   const side = Math.floor(Math.random() * 4),
     p = 88;
   return side === 0
@@ -1010,15 +1013,12 @@ function makeObjectives() {
   };
 }
 function buildArena() {
-  walls = [];
+  const layout = RoomData[stage.id];
+  rooms = layout ? layout.rooms.map((room) => ({ ...room })) : [];
+  walls = layout ? layout.walls.map((wall) => ({ ...wall, open: false })) : [];
   switches = [];
   shuttle = null;
   if (stage.number === 2) {
-    walls = [
-      { x: 620, y: 45, w: 40, h: 235, open: false },
-      { x: 620, y: 440, w: 40, h: 235, open: false },
-      { x: 620, y: 280, w: 40, h: 160, open: false, gate: true },
-    ];
     switches = [{ x: 410, y: 210, r: 31, charge: 0, lastHit: -9 }];
   }
   if (stage.number === 3)
@@ -1412,6 +1412,15 @@ function render() {
 function renderArena() {
   ctx.fillStyle = stage?.arena?.tint || "#060916";
   ctx.fillRect(0, 0, BASE.W, BASE.H);
+  for (const [index, room] of rooms.entries()) {
+    ctx.fillStyle = index % 2 ? "rgba(28,46,74,.2)" : "rgba(18,67,77,.16)";
+    ctx.fillRect(room.x, room.y, room.w, room.h);
+    ctx.strokeStyle = "rgba(107,181,216,.18)";
+    ctx.strokeRect(room.x, room.y, room.w, room.h);
+    ctx.fillStyle = "rgba(166,220,237,.28)";
+    ctx.font = "11px monospace";
+    ctx.fillText(room.name, room.x + 13, room.y + 20);
+  }
   ctx.strokeStyle = "rgba(66,95,142,.12)";
   for (let x = 0; x < BASE.W; x += 48) {
     ctx.beginPath();
@@ -1430,6 +1439,22 @@ function renderArena() {
   for (const w of walls) {
     ctx.fillStyle = w.open ? "rgba(69,245,233,.08)" : "rgba(70,116,185,.45)";
     ctx.fillRect(w.x, w.y, w.w, w.h);
+    if (!w.open) {
+      ctx.strokeStyle = "rgba(121,186,242,.35)";
+      ctx.beginPath();
+      if (w.w > w.h) {
+        for (let x = w.x + 10; x < w.x + w.w; x += 26) {
+          ctx.moveTo(x, w.y + 3);
+          ctx.lineTo(x + 8, w.y + w.h - 3);
+        }
+      } else {
+        for (let y = w.y + 10; y < w.y + w.h; y += 26) {
+          ctx.moveTo(w.x + 3, y);
+          ctx.lineTo(w.x + w.w - 3, y + 8);
+        }
+      }
+      ctx.stroke();
+    }
     if (w.gate) {
       ctx.strokeStyle = w.open ? "#45f5e9" : "#659cff";
       ctx.strokeRect(w.x, w.y, w.w, w.h);
