@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#08111f" />
+    <title>Signal Keeper</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="game-header">
+        <div>
+          <p class="eyebrow">도시 전력망 관제실</p>
+          <h1>시그널 키퍼</h1>
+        </div>
+        <div class="help" aria-label="조작법">사건 구역 선택 → 아래 버튼으로 전력 회수·배정<br /><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> / <kbd>Q</kbd> <kbd>E</kbd>는 빠른 조작입니다</div>
+      </header>
+
+      <section class="hud" aria-label="게임 상태">
+        <div><span>남은 시간</span><strong id="time">03:00</strong></div>
+        <div><span>구조 시민</span><strong id="score">0</strong></div>
+        <div><span>연쇄 성공</span><strong id="combo">x0</strong></div>
+        <div><span>위기 단계</span><strong id="alert-level">학습</strong></div>
+        <div><span>배정 전력</span><strong id="energy">6 / 6</strong></div>
+        <div><span>예비 전력</span><strong id="recharge">0</strong></div>
+        <div><span>과부하</span><strong id="overload">0%</strong></div>
+        <div><span>전력망 용량</span><strong id="grid-cap">6</strong></div>
+        <div class="stability"><span>도시 안정도</span><div class="meter"><i id="stability-bar"></i></div><strong id="stability-text">100%</strong></div>
+      </section>
+
+      <section class="canvas-wrap" aria-label="Signal Keeper 게임">
+        <canvas id="game" width="960" height="540"></canvas>
+        <div id="tutorial" class="tutorial" hidden aria-live="polite"></div>
+        <button id="mute-button" class="mute-button" type="button" aria-pressed="false" aria-label="사운드 끄기">🔊</button>
+        <div id="overlay" class="overlay">
+          <p class="eyebrow">대정전 발생</p>
+          <h2>도시 전력을 배분하세요.</h2>
+          <p>사건이 생긴 구역을 누르고, 다른 구역의 전력을 회수해 필요한 곳에 배정하세요.<br />모든 사건을 살릴 수는 없습니다. 무엇을 포기할지 판단하세요.</p>
+          <button id="start-button" type="button">관제 시작 <span>↵</span></button>
+        </div>
+      </section>
+      <section class="power-controls" aria-label="선택 구역 전력 조절">
+        <p><b id="selected-zone">북부</b> 선택됨<br />① 전력이 남는 구역 선택 → ② <b>전력 회수</b> → ③ 사건 구역 선택 → <b>전력 배정</b></p>
+        <button id="power-down" type="button" aria-label="선택 구역 전력 회수">① 전력 회수 <kbd>Q</kbd></button>
+        <button id="power-up" type="button" aria-label="선택 구역 전력 배정">② 전력 배정 <kbd>E</kbd></button>
+      </section>
+
+      <p id="message" class="message" aria-live="polite">관제 시작을 누르면 첫 사건이 도착합니다.</p>
+      <p id="effect-info" class="effect-info" aria-live="polite"></p>
+    </main>
+    <script src="event-data.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
