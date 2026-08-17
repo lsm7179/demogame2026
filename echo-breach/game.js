@@ -339,6 +339,8 @@ function freshState() {
     lastOverload: -9,
     overloads: 0,
     anchorPhase: "armored",
+    overloadText: 0,
+    collapsing: false,
     history: [],
   };
 }
@@ -1150,18 +1152,71 @@ function updateObjectives(dt) {
   state.shieldTimer = Math.max(0, state.shieldTimer - dt);
 }
 function damageCore(dmg, byEcho) {
+  if (state.collapsing) return;
   const applied =
     dmg * (state.overdriveTimer > 0 ? GameBalance.overdrive.anchorDamageMultiplier : 1);
   core.hp = Math.max(0, core.hp - applied);
   state.coreDamage += applied;
   state.totalCoreHits++;
   if (byEcho) {
+    state.lastEchoCoreHit = state.elapsed;
     state.echoCoreHits++;
     state.echoDamage += applied;
-  }
+  } else state.lastPlayerCoreHit = state.elapsed;
   state.score += Math.round(applied * 5);
   shake = 3;
-  if (core.hp <= 0) endStage(true);
+  tryTemporalOverload();
+  updateAnchorPhase();
+  if (core.hp <= 0) collapseAnchor();
+}
+function tryTemporalOverload() {
+  if (
+    !TemporalCore.canTemporalOverload(
+      {
+        now: state.elapsed,
+        playerHitAt: state.lastPlayerCoreHit,
+        echoHitAt: state.lastEchoCoreHit,
+        lastOverloadAt: state.lastOverload,
+        shieldOpen: state.shieldTimer > 0,
+      },
+      GameBalance.overload
+    )
+  )
+    return;
+  const bonus =
+    GameBalance.overload.bonusDamage *
+    (state.overdriveTimer > 0 ? GameBalance.overload.overdriveBonus : 1);
+  core.hp = Math.max(0, core.hp - bonus);
+  state.coreDamage += bonus;
+  state.lastOverload = state.elapsed;
+  state.overloads++;
+  state.overloadText = 0.8;
+  state.score += bonus * 8;
+  hitStop = 0.055;
+  shake = 8;
+  burst(core.x, core.y, "#c9fff8", 24, 210);
+  tone("square", 260, 0.22, 0.07, 520);
+}
+function updateAnchorPhase() {
+  const phase = TemporalCore.anchorPhase(core.hp / core.maxHp, GameBalance.anchorPhases);
+  if (phase === state.anchorPhase) return;
+  state.anchorPhase = phase;
+  if (phase !== "collapsed") {
+    burst(core.x, core.y, phase === "critical" ? "#ffdf70" : "#ff5570", 26, 230);
+    tone("sawtooth", phase === "critical" ? 120 : 190, 0.32, 0.07, -60);
+    shake = phase === "critical" ? 12 : 7;
+  }
+}
+function collapseAnchor() {
+  if (state.mode === "result" || state.collapsing) return;
+  state.collapsing = true;
+  state.anchorPhase = "collapsed";
+  hitStop = 0.12;
+  shake = 18;
+  echoes.forEach((echo) => (echo.finished = true));
+  for (let i = 0; i < 4; i++)
+    setTimeout(() => burst(core.x, core.y, i % 2 ? "#fff" : "#ff315b", 28, 260 + i * 40), i * 55);
+  setTimeout(() => endStage(true), 180);
 }
 
 // ── 파티클과 진행 ──────────────────────────────────────────────────────────
@@ -1373,6 +1428,7 @@ function endStage(win) {
   $("result-hurt").textContent = Math.round(state.damageTaken);
   $("result-rescue").textContent = shuttle ? `${shuttle.survivors} / 12` : "—";
   $("result-combo").textContent = state.bestCombo;
+  $("result-overloads").textContent = state.overloads;
   $("result-next").textContent = win ? "ANALYZE CRYSTAL" : "RETRY";
   if (win) {
     const old = save.stages[stage.id] || {};
@@ -1542,6 +1598,13 @@ function render() {
     renderCursor();
   }
   ctx.restore();
+  if (state.overloadText > 0) {
+    ctx.fillStyle = `rgba(190,255,249,${clamp(state.overloadText * 1.4, 0, 1)})`;
+    ctx.font = "700 24px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("TEMPORAL OVERLOAD", innerWidth / 2, innerHeight * 0.28);
+    ctx.textAlign = "start";
+  }
   if (flash > 0) {
     ctx.fillStyle = `rgba(255,45,73,${flash * 0.55})`;
     ctx.fillRect(0, 0, innerWidth, innerHeight);
@@ -1661,15 +1724,37 @@ function renderObjectives() {
     ctx.stroke();
   }
   ctx.save();
-  ctx.shadowBlur = 24;
+  const phase = state.anchorPhase;
+  const urgency = phase === "critical" ? 2.4 : phase === "unstable" ? 1.7 : 1;
+  ctx.shadowBlur = 24 + urgency * 5;
   ctx.shadowColor = state.shieldTimer > 0 ? "#ff405f" : "#488bff";
-  ctx.fillStyle = "#d92d4d";
-  poly(core.x, core.y, 34, 8, performance.now() * 0.0002);
+  ctx.fillStyle = phase === "critical" ? "#ff6b32" : phase === "unstable" ? "#ef3158" : "#d92d4d";
+  poly(
+    core.x,
+    core.y,
+    34 + Math.sin(state.elapsed * 7 * urgency) * urgency,
+    8,
+    performance.now() * 0.0002 * urgency
+  );
   ctx.fill();
   ctx.fillStyle = "#fff";
   ctx.beginPath();
   ctx.arc(core.x, core.y, 10, 0, 6.283);
   ctx.fill();
+  if (phase !== "armored") {
+    ctx.strokeStyle = "#fff0dc";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(core.x - 22, core.y - 18);
+    ctx.lineTo(core.x - 5, core.y - 2);
+    ctx.lineTo(core.x - 18, core.y + 18);
+    if (phase === "unstable" || phase === "critical") {
+      ctx.moveTo(core.x + 20, core.y - 17);
+      ctx.lineTo(core.x + 4, core.y + 3);
+      ctx.lineTo(core.x + 22, core.y + 15);
+    }
+    ctx.stroke();
+  }
   ctx.restore();
   if (state.shieldTimer <= 0) {
     ctx.strokeStyle = "#5798ff";
@@ -1986,6 +2071,7 @@ function update(dt) {
   }
   state.elapsed += dt;
   state.overdriveTimer = TemporalCore.tickOverdrive(state, dt).overdriveTimer;
+  state.overloadText = Math.max(0, state.overloadText - dt);
   updatePlayer(dt);
   updateEchoes(dt);
   for (let i = warnings.length - 1; i >= 0; i--) {
