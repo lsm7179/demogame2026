@@ -8,9 +8,9 @@
   return Object.freeze({
     baseFireInterval: 0.22,
     splitShot: Object.freeze({
-      projectileCount: 3,
-      spread: 0.16,
-      damageMultiplier: 0.45,
+      projectileCount: 2,
+      spread: (10 * Math.PI) / 180,
+      damageMultiplier: 0.7,
     }),
     chargeLance: Object.freeze({
       fullChargeSeconds: 1.25,

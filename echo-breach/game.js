@@ -155,7 +155,7 @@ const UPGRADES = [
     id: "split-shot",
     name: "SPLIT SHOT",
     category: "WEAPON",
-    description: "3방향 자동 사격. 탄환 피해 45%. 릴레이 동기화 범위가 넓어진다.",
+    description: "좌우 5° 2방향 자동 사격. 탄환 피해 70%.",
     rarity: "rare",
     incompatible: ["pulse-cannon", "charge-lance"],
     visual: "TRIPLE MUZZLE",
