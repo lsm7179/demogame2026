@@ -48,7 +48,8 @@ function reachable(layout, start, goal) {
 }
 
 test("all playable stages define distinct connected rooms", () => {
-  for (const [id, layout] of Object.entries(layouts)) {
+  for (const id of ["awakening", "split-current", "rescue-window"]) {
+    const layout = layouts[id];
     assert.ok(layout.rooms.length >= 3, `${id} needs at least three rooms`);
     assert.equal(new Set(layout.rooms.map((room) => room.id)).size, layout.rooms.length);
     assert.ok(!blocked(layout, starts[id].x, starts[id].y), `${id} start is clear`);
@@ -64,4 +65,40 @@ test("Stage 2 keeps one temporal gate between both halves", () => {
   const layout = layouts["split-current"];
   assert.equal(layout.walls.filter((wall) => wall.gate).length, 1);
   assert.ok(reachable(layout, starts["split-current"], { x: 990, y: 335 }));
+});
+
+test("Stage 1 advances through three ordered combat rooms", () => {
+  const encounters = layouts.awakening.encounters;
+  assert.deepEqual(
+    encounters.map((room) => room.id),
+    ["containment-hall", "infested-lab", "anchor-chamber"]
+  );
+  assert.deepEqual(
+    encounters.map((room) => room.objective),
+    ["eliminate", "elite", "anchor"]
+  );
+});
+
+test("room transition clears transient combat and Echo objects", () => {
+  const next = layouts.advanceRoomState(
+    {
+      roomIndex: 0,
+      loop: 4,
+      score: 900,
+      overdrive: 44,
+      recordings: [1],
+      echoes: [1],
+      bullets: [1],
+      enemies: [1],
+      particles: [1],
+      pickups: [1],
+    },
+    3
+  );
+  assert.equal(next.roomIndex, 1);
+  assert.equal(next.loop, 1);
+  assert.equal(next.score, 900);
+  assert.equal(next.overdrive, 44);
+  for (const key of ["recordings", "echoes", "bullets", "enemies", "particles", "pickups"])
+    assert.deepEqual(next[key], []);
 });

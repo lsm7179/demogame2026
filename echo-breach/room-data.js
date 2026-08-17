@@ -7,6 +7,68 @@
 
   const layouts = {
     awakening: {
+      encounters: [
+        {
+          id: "containment-hall",
+          name: "CONTAINMENT HALL",
+          objective: "eliminate",
+          playerStart: { x: 120, y: 360 },
+          exit: { x: 1175, y: 360, r: 42 },
+          walls: [
+            { x: 360, y: 45, w: 18, h: 220 },
+            { x: 360, y: 455, w: 18, h: 220 },
+            { x: 820, y: 45, w: 18, h: 220 },
+            { x: 820, y: 455, w: 18, h: 220 },
+          ],
+          waves: ["chaser", "chaser", "shooter", "chaser"],
+          spawnPoints: [
+            { x: 520, y: 150 },
+            { x: 620, y: 570 },
+            { x: 1040, y: 180 },
+            { x: 1060, y: 550 },
+          ],
+        },
+        {
+          id: "infested-lab",
+          name: "INFESTED LAB",
+          objective: "elite",
+          playerStart: { x: 105, y: 590 },
+          exit: { x: 1175, y: 120, r: 42 },
+          walls: [
+            { x: 300, y: 230, w: 420, h: 18 },
+            { x: 560, y: 470, w: 420, h: 18 },
+          ],
+          waves: ["blocker", "shooter", "chaser", "shooter", "chaser"],
+          spawnPoints: [
+            { x: 430, y: 120 },
+            { x: 790, y: 350 },
+            { x: 1080, y: 580 },
+            { x: 1080, y: 130 },
+          ],
+        },
+        {
+          id: "anchor-chamber",
+          name: "ANCHOR CHAMBER",
+          objective: "anchor",
+          playerStart: { x: 640, y: 630 },
+          exit: null,
+          walls: [
+            { x: 25, y: 490, w: 480, h: 18 },
+            { x: 775, y: 490, w: 480, h: 18 },
+            { x: 412, y: 45, w: 18, h: 185 },
+            { x: 412, y: 350, w: 18, h: 140 },
+            { x: 850, y: 45, w: 18, h: 185 },
+            { x: 850, y: 350, w: 18, h: 140 },
+          ],
+          waves: ["blocker", "shooter", "chaser", "blocker"],
+          spawnPoints: [
+            { x: 95, y: 90 },
+            { x: 1180, y: 90 },
+            { x: 100, y: 430 },
+            { x: 1180, y: 430 },
+          ],
+        },
+      ],
       rooms: [
         { id: "entry", name: "ENTRY LOCK", x: 505, y: 500, w: 270, h: 190 },
         { id: "west-relay", name: "RELAY WEST", x: 35, y: 45, w: 385, h: 445 },
@@ -70,16 +132,45 @@
     },
   };
 
-  return Object.freeze(
-    Object.fromEntries(
-      Object.entries(layouts).map(([id, layout]) => [
-        id,
-        Object.freeze({
-          rooms: Object.freeze(layout.rooms.map(Object.freeze)),
-          walls: Object.freeze(layout.walls.map(Object.freeze)),
-          spawnPoints: Object.freeze(layout.spawnPoints.map(Object.freeze)),
-        }),
-      ])
-    )
+  function advanceRoomState(state, roomCount) {
+    if (state.roomIndex >= roomCount - 1) return null;
+    return {
+      ...state,
+      roomIndex: state.roomIndex + 1,
+      loop: 1,
+      roomCleared: false,
+      recordings: [],
+      echoes: [],
+      bullets: [],
+      enemies: [],
+      particles: [],
+      pickups: [],
+    };
+  }
+
+  const frozenLayouts = Object.fromEntries(
+    Object.entries(layouts).map(([id, layout]) => [
+      id,
+      Object.freeze({
+        rooms: Object.freeze(layout.rooms.map(Object.freeze)),
+        walls: Object.freeze(layout.walls.map(Object.freeze)),
+        spawnPoints: Object.freeze(layout.spawnPoints.map(Object.freeze)),
+        encounters: layout.encounters
+          ? Object.freeze(
+              layout.encounters.map((encounter) =>
+                Object.freeze({
+                  ...encounter,
+                  playerStart: Object.freeze(encounter.playerStart),
+                  exit: encounter.exit ? Object.freeze(encounter.exit) : null,
+                  walls: Object.freeze(encounter.walls.map(Object.freeze)),
+                  waves: Object.freeze(encounter.waves),
+                  spawnPoints: Object.freeze(encounter.spawnPoints.map(Object.freeze)),
+                })
+              )
+            )
+          : null,
+      }),
+    ])
   );
+  return Object.freeze({ ...frozenLayouts, advanceRoomState });
 });
