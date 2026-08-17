@@ -7,7 +7,8 @@
     "format": "prettier --write \"echo-breach/**/*.{html,css,js,json,md}\"",
     "format:check": "prettier --check \"echo-breach/**/*.{html,css,js,json,md}\"",
     "test": "node --test echo-breach/tests/*.test.js",
-    "check": "npm run format:check && npm test && node --check echo-breach/game.js"
+    "release:check": "node scripts/verify-release.mjs",
+    "check": "npm run format:check && npm test && node --check echo-breach/echo-core.js && node --check echo-breach/game.js && npm run release:check"
   },
   "devDependencies": {
     "prettier": "3.6.2"

@@ -1,0 +1,11 @@
+{
+  "name": "ECHO BREACH",
+  "short_name": "ECHO BREACH",
+  "description": "A top-down time-loop action shooter about cooperating with recorded past timelines.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#02030a",
+  "theme_color": "#050711",
+  "orientation": "landscape"
+}

@@ -16,6 +16,21 @@ python3 -m http.server 8080
 
 브라우저에서 `http://localhost:8080`을 엽니다. 최신 데스크톱 Chrome, Firefox, Safari를 권장합니다.
 
+## 개발 검사
+
+저장소 루트에서 의존성을 설치하고 전체 검사를 실행합니다.
+
+```sh
+npm ci
+npm run check
+```
+
+- `npm run format`: ECHO BREACH 소스와 문서 포맷
+- `npm run format:check`: 포맷 변경 필요 여부 검사
+- `npm test`: Echo 핵심 시간 기록·재생 회귀 테스트
+- `npm run release:check`: 패키지, 게임 버전, 저장 스키마와 Pages 배포 범위 검사
+- `npm run check`: 위 검사와 JavaScript 문법 검사를 한 번에 실행
+
 ## 조작
 
 - WASD: 이동
@@ -54,8 +69,13 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `index.html`: 캠페인 메뉴, 브리핑, 전투 HUD, 결과와 업그레이드 화면
 - `style.css`: 반응형 SF 인터페이스
 - `game.js`: 데이터, 저장, 전투, Echo 기록/재생, 스테이지 규칙
+- `echo-core.js`: 브라우저와 Node 테스트가 공유하는 순수 Echo 시간 로직
+- `version.json`: 공개 게임 버전과 저장 스키마 버전
+- `manifest.webmanifest`: 설치·출시 메타데이터
 - `README.md`: 실행 및 기능 안내
 - `DESIGN.md`: 시스템과 밸런스 설계
+- `QA_BASELINE.md`: 기술 부채 정리 전 회귀 기준값
+- `tests/`: Node 내장 테스트 러너 기반 자동 회귀 테스트
 
 ## 알려진 제한사항과 다음 후보
 
