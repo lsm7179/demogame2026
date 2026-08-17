@@ -686,7 +686,7 @@ function beginRecording() {
   recordSnapshot(true);
 }
 function recordSnapshot(force = false) {
-  if (!force && state.elapsed + 1e-6 < state.nextSample) return;
+  if (!EchoCore.shouldSample(state.elapsed, state.nextSample, force)) return;
   state.current.samples.push({ t: state.elapsed, x: player.x, y: player.y, a: player.angle });
   state.nextSample += BASE.SAMPLE;
 }
@@ -694,8 +694,7 @@ function commitRecording(keep = true) {
   recordSnapshot(true);
   state.current.duration = state.elapsed;
   if (keep) {
-    recordings.push(state.current);
-    if (recordings.length > BASE.MAX_ECHOES) recordings.shift();
+    recordings = EchoCore.appendRecording(recordings, state.current, BASE.MAX_ECHOES);
   }
 }
 function makeEcho(rec, i) {
@@ -722,16 +721,13 @@ function updateEchoes(dt) {
     }
     e.finished = false;
     if (t <= e.rec.duration) {
-      let k = 0;
-      while (k + 1 < e.rec.samples.length && e.rec.samples[k + 1].t <= t) k++;
-      const a = e.rec.samples[k],
-        b = e.rec.samples[Math.min(k + 1, e.rec.samples.length - 1)],
-        f = a === b ? 0 : clamp((t - a.t) / (b.t - a.t), 0, 1);
-      e.x = lerp(a.x, b.x, f);
-      e.y = lerp(a.y, b.y, f);
-      e.angle = a.a + (((b.a - a.a + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * f;
-      while (e.eventIndex < e.rec.events.length && e.rec.events[e.eventIndex].t <= t + 0.008) {
-        const ev = e.rec.events[e.eventIndex++];
+      const pose = EchoCore.interpolatePose(e.rec.samples, t);
+      e.x = pose.x;
+      e.y = pose.y;
+      e.angle = pose.angle;
+      const due = EchoCore.collectDueEvents(e.rec.events, e.eventIndex, t);
+      e.eventIndex = due.nextIndex;
+      for (const ev of due.events) {
         if (ev.type === "shot") fireWeapon(e, true, ev.profile, false);
         else if (ev.type === "dash") burst(e.x, e.y, "#45f5e9", 7, 80);
       }
