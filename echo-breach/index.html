@@ -1,14 +1,163 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#050711"><title>ECHO BREACH</title><link rel="stylesheet" href="style.css"></head>
-<body><main id="game-shell"><canvas id="game" aria-label="ECHO BREACH 전투 화면"></canvas>
-<div id="hud" class="hidden"><div id="stage-hud">S1 // AWAKENING</div><section class="hud-top"><div><span class="label">LOOP</span><strong id="loop-value">1 / 5</strong></div><div class="timer"><span class="label">REWIND IN</span><strong id="time-value">20.0</strong></div><div><span class="label">ECHOES</span><strong id="echo-value">0</strong></div></section><section class="bars left-bars"><div><span>ECHO-07 INTEGRITY</span><div class="bar"><i id="hp-bar"></i></div></div><div><span>DASH</span><div class="bar dash"><i id="dash-bar"></i></div></div><div id="shuttle-hud" class="hidden"><span>RESCUE SHUTTLE <b id="survivor-value">12 / 12</b></span><div class="bar shuttle"><i id="shuttle-bar"></i></div></div></section><section class="bars right-bars"><div><span>CHRONO ANCHOR</span><div class="bar core"><i id="core-bar"></i></div></div><div class="score"><span>SCORE</span><strong id="score-value">0</strong></div></section><div id="objective">RECORD A FIRING PATTERN</div><div id="tip"></div></div>
-<section id="title-screen" class="overlay"><div class="panel hero"><p class="eyebrow">NEXUS TEMPORAL EMERGENCY</p><h1>ECHO<br><em>BREACH</em></h1><p class="tagline">시설 전체가 파괴 직전의 20초에 갇혔다. ECHO-07만이 과거 시간선의 전투 기록을 다음 루프로 전송할 수 있다.</p><div class="menu-row"><button id="continue-button">CONTINUE</button><button id="new-button" class="secondary">NEW CAMPAIGN</button></div><div class="controls"><span><b>WASD</b> 이동</span><span><b>MOUSE</b> 조준·사격</span><span><b>SPACE</b> 대시</span><span><b>R</b> 루프 기록</span></div><button id="mute-title" class="text-button">SOUND: ON</button><p class="mobile-note">데스크톱 플레이를 권장합니다.</p></div></section>
-<section id="confirm-screen" class="overlay hidden"><div class="panel compact"><p class="eyebrow">CAMPAIGN MEMORY</p><h2>NEW TIMELINE?</h2><p>현재 캠페인 진행을 새 시간선으로 교체합니다.</p><div class="menu-row"><button id="confirm-new">CONFIRM</button><button data-back class="secondary">CANCEL</button></div></div></section>
-<section id="difficulty-screen" class="overlay hidden"><div class="panel wide"><p class="eyebrow">SELECT TEMPORAL LOAD</p><h2>DIFFICULTY</h2><div id="difficulty-cards" class="card-grid three"></div><button data-back class="text-button">BACK</button></div></section>
-<section id="stage-screen" class="overlay hidden"><div class="panel wide"><p class="eyebrow">NEXUS SECTOR MAP</p><h2>SELECT ANCHOR</h2><div id="campaign-status"></div><div id="stage-cards" class="card-grid stages"></div><button id="change-difficulty" class="text-button">CHANGE DIFFICULTY</button></div></section>
-<section id="briefing-screen" class="overlay hidden"><div class="panel briefing"><p id="briefing-kicker" class="eyebrow"></p><h2 id="briefing-title"></h2><p id="briefing-subtitle" class="subtitle"></p><div id="briefing-copy" class="comms"></div><div id="briefing-objective" class="objective-card"></div><div class="menu-row"><button id="deploy-button">DEPLOY ECHO-07</button><button id="briefing-back" class="secondary">SECTOR MAP</button></div></div></section>
-<section id="pause-screen" class="overlay hidden"><div class="panel compact"><p class="eyebrow">SYSTEM SUSPENDED</p><h2>PAUSED</h2><p>ESC 키로 전투 복귀</p><button id="abort-button" class="secondary">ABORT TO MAP</button></div></section>
-<section id="transition-screen" class="overlay hidden nonblocking"><div class="transition-copy"><p>LOOP RECORDED</p><strong id="transition-echo">ECHO 01 ONLINE</strong></div></section>
-<section id="override-screen" class="overlay hidden"><div class="panel compact"><p class="eyebrow">RECORD OVERRIDE</p><h2>KEEP TIMELINE?</h2><div class="menu-row"><button id="keep-record">SAVE ECHO</button><button id="discard-record" class="secondary">DISCARD</button></div></div></section>
-<section id="result-screen" class="overlay hidden"><div class="panel result"><p id="result-kicker" class="eyebrow"></p><div id="rank-badge">A</div><h2 id="result-title"></h2><div id="rank-reasons" class="rank-reasons"></div><div class="result-grid"><div><span>SCORE</span><strong id="result-score">0</strong></div><div><span>LOOPS</span><strong id="result-loops">0</strong></div><div><span>ECHO SYNC</span><strong id="result-sync">0%</strong></div><div><span>DAMAGE TAKEN</span><strong id="result-hurt">0</strong></div><div><span>RESCUED</span><strong id="result-rescue">—</strong></div><div><span>BEST COMBO</span><strong id="result-combo">0</strong></div></div><div class="menu-row"><button id="result-next">CONTINUE</button><button id="result-map" class="secondary">SECTOR MAP</button></div></div></section>
-<section id="upgrade-screen" class="overlay hidden"><div class="panel wide"><p class="eyebrow">CHRONO CRYSTAL ANALYSIS</p><h2>SELECT UPGRADE</h2><p>한 캠페인 동안 유지됩니다. 다음 기록 전략을 선택하세요.</p><div id="upgrade-cards" class="card-grid three"></div></div></section>
-<button id="mute-game" class="corner-button hidden" aria-label="음소거">M</button></main><script src="game.js"></script></body></html>
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="theme-color" content="#050711" />
+    <title>ECHO BREACH</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="game-shell">
+      <canvas id="game" aria-label="ECHO BREACH 전투 화면"></canvas>
+      <div id="hud" class="hidden">
+        <div id="stage-hud">S1 // AWAKENING</div>
+        <section class="hud-top">
+          <div><span class="label">LOOP</span><strong id="loop-value">1 / 5</strong></div>
+          <div class="timer">
+            <span class="label">REWIND IN</span><strong id="time-value">20.0</strong>
+          </div>
+          <div><span class="label">ECHOES</span><strong id="echo-value">0</strong></div>
+        </section>
+        <section class="bars left-bars">
+          <div>
+            <span>ECHO-07 INTEGRITY</span>
+            <div class="bar"><i id="hp-bar"></i></div>
+          </div>
+          <div>
+            <span>DASH</span>
+            <div class="bar dash"><i id="dash-bar"></i></div>
+          </div>
+          <div id="shuttle-hud" class="hidden">
+            <span>RESCUE SHUTTLE <b id="survivor-value">12 / 12</b></span>
+            <div class="bar shuttle"><i id="shuttle-bar"></i></div>
+          </div>
+        </section>
+        <section class="bars right-bars">
+          <div>
+            <span>CHRONO ANCHOR</span>
+            <div class="bar core"><i id="core-bar"></i></div>
+          </div>
+          <div class="score"><span>SCORE</span><strong id="score-value">0</strong></div>
+        </section>
+        <div id="objective">RECORD A FIRING PATTERN</div>
+        <div id="tip"></div>
+      </div>
+      <section id="title-screen" class="overlay">
+        <div class="panel hero">
+          <p class="eyebrow">NEXUS TEMPORAL EMERGENCY</p>
+          <h1>ECHO<br /><em>BREACH</em></h1>
+          <p class="tagline">
+            시설 전체가 파괴 직전의 20초에 갇혔다. ECHO-07만이 과거 시간선의 전투 기록을 다음 루프로
+            전송할 수 있다.
+          </p>
+          <div class="menu-row">
+            <button id="continue-button">CONTINUE</button
+            ><button id="new-button" class="secondary">NEW CAMPAIGN</button>
+          </div>
+          <div class="controls">
+            <span><b>WASD</b> 이동</span><span><b>MOUSE</b> 조준·사격</span
+            ><span><b>SPACE</b> 대시</span><span><b>R</b> 루프 기록</span>
+          </div>
+          <button id="mute-title" class="text-button">SOUND: ON</button>
+          <p class="mobile-note">데스크톱 플레이를 권장합니다.</p>
+        </div>
+      </section>
+      <section id="confirm-screen" class="overlay hidden">
+        <div class="panel compact">
+          <p class="eyebrow">CAMPAIGN MEMORY</p>
+          <h2>NEW TIMELINE?</h2>
+          <p>현재 캠페인 진행을 새 시간선으로 교체합니다.</p>
+          <div class="menu-row">
+            <button id="confirm-new">CONFIRM</button
+            ><button data-back class="secondary">CANCEL</button>
+          </div>
+        </div>
+      </section>
+      <section id="difficulty-screen" class="overlay hidden">
+        <div class="panel wide">
+          <p class="eyebrow">SELECT TEMPORAL LOAD</p>
+          <h2>DIFFICULTY</h2>
+          <div id="difficulty-cards" class="card-grid three"></div>
+          <button data-back class="text-button">BACK</button>
+        </div>
+      </section>
+      <section id="stage-screen" class="overlay hidden">
+        <div class="panel wide">
+          <p class="eyebrow">NEXUS SECTOR MAP</p>
+          <h2>SELECT ANCHOR</h2>
+          <div id="campaign-status"></div>
+          <div id="stage-cards" class="card-grid stages"></div>
+          <button id="change-difficulty" class="text-button">CHANGE DIFFICULTY</button>
+        </div>
+      </section>
+      <section id="briefing-screen" class="overlay hidden">
+        <div class="panel briefing">
+          <p id="briefing-kicker" class="eyebrow"></p>
+          <h2 id="briefing-title"></h2>
+          <p id="briefing-subtitle" class="subtitle"></p>
+          <div id="briefing-copy" class="comms"></div>
+          <div id="briefing-objective" class="objective-card"></div>
+          <div class="menu-row">
+            <button id="deploy-button">DEPLOY ECHO-07</button
+            ><button id="briefing-back" class="secondary">SECTOR MAP</button>
+          </div>
+        </div>
+      </section>
+      <section id="pause-screen" class="overlay hidden">
+        <div class="panel compact">
+          <p class="eyebrow">SYSTEM SUSPENDED</p>
+          <h2>PAUSED</h2>
+          <p>ESC 키로 전투 복귀</p>
+          <button id="abort-button" class="secondary">ABORT TO MAP</button>
+        </div>
+      </section>
+      <section id="transition-screen" class="overlay hidden nonblocking">
+        <div class="transition-copy">
+          <p>LOOP RECORDED</p>
+          <strong id="transition-echo">ECHO 01 ONLINE</strong>
+        </div>
+      </section>
+      <section id="override-screen" class="overlay hidden">
+        <div class="panel compact">
+          <p class="eyebrow">RECORD OVERRIDE</p>
+          <h2>KEEP TIMELINE?</h2>
+          <div class="menu-row">
+            <button id="keep-record">SAVE ECHO</button
+            ><button id="discard-record" class="secondary">DISCARD</button>
+          </div>
+        </div>
+      </section>
+      <section id="result-screen" class="overlay hidden">
+        <div class="panel result">
+          <p id="result-kicker" class="eyebrow"></p>
+          <div id="rank-badge">A</div>
+          <h2 id="result-title"></h2>
+          <div id="rank-reasons" class="rank-reasons"></div>
+          <div class="result-grid">
+            <div><span>SCORE</span><strong id="result-score">0</strong></div>
+            <div><span>LOOPS</span><strong id="result-loops">0</strong></div>
+            <div><span>ECHO SYNC</span><strong id="result-sync">0%</strong></div>
+            <div><span>DAMAGE TAKEN</span><strong id="result-hurt">0</strong></div>
+            <div><span>RESCUED</span><strong id="result-rescue">—</strong></div>
+            <div><span>BEST COMBO</span><strong id="result-combo">0</strong></div>
+          </div>
+          <div class="menu-row">
+            <button id="result-next">CONTINUE</button
+            ><button id="result-map" class="secondary">SECTOR MAP</button>
+          </div>
+        </div>
+      </section>
+      <section id="upgrade-screen" class="overlay hidden">
+        <div class="panel wide">
+          <p class="eyebrow">CHRONO CRYSTAL ANALYSIS</p>
+          <h2>SELECT UPGRADE</h2>
+          <p>한 캠페인 동안 유지됩니다. 다음 기록 전략을 선택하세요.</p>
+          <div id="upgrade-cards" class="card-grid three"></div>
+        </div>
+      </section>
+      <button id="mute-game" class="corner-button hidden" aria-label="음소거">M</button>
+    </main>
+    <script src="game.js"></script>
+  </body>
+</html>

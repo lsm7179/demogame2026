@@ -32,48 +32,48 @@ Verified without console errors or warnings:
 
 ### Difficulty configuration
 
-| Setting | STORY | OPERATIVE | PARADOX |
-|---|---:|---:|---:|
-| Loop time | 25 s | 20 s | 18 s |
-| Maximum loops | 6 | 5 | 5 |
-| Enemy bullet speed multiplier | 0.80 | 1.00 | 1.18 |
-| Player damage taken multiplier | 0.70 | 1.00 | 1.08 |
-| Dash cooldown multiplier | 0.82 | 1.00 | 1.00 |
-| Relay decay multiplier | 0.60 | 1.00 | 1.35 |
-| Shield-open duration | 6.2 s | 5.3 s | 4.4 s |
-| Enemy composition multiplier | 1.00 | 1.00 | 1.25 |
-| Score multiplier | 0.80 | 1.00 | 1.35 |
+| Setting                        | STORY | OPERATIVE | PARADOX |
+| ------------------------------ | ----: | --------: | ------: |
+| Loop time                      |  25 s |      20 s |    18 s |
+| Maximum loops                  |     6 |         5 |       5 |
+| Enemy bullet speed multiplier  |  0.80 |      1.00 |    1.18 |
+| Player damage taken multiplier |  0.70 |      1.00 |    1.08 |
+| Dash cooldown multiplier       |  0.82 |      1.00 |    1.00 |
+| Relay decay multiplier         |  0.60 |      1.00 |    1.35 |
+| Shield-open duration           | 6.2 s |     5.3 s |   4.4 s |
+| Enemy composition multiplier   |  1.00 |      1.00 |    1.25 |
+| Score multiplier               |  0.80 |      1.00 |    1.35 |
 
 ### Base combat configuration
 
-| Value | Baseline |
-|---|---:|
-| Canvas simulation size | 1280 × 720 |
-| Position/aim sample interval | 0.05 s |
-| Maximum Echo count | 4 |
-| Player maximum health | 100 |
-| Player movement speed | 265 px/s |
-| Player base damage | 12 |
-| Base fire interval | 0.115 s |
-| Player bullet speed | 760 px/s |
-| Default Echo damage ratio | 0.65 |
-| Amplified Echo damage ratio | 0.80 |
-| Dash speed | 720 px/s |
-| Dash duration | 0.14 s |
-| Base dash cooldown | 1.35 s |
-| Dash invulnerability | 0.22 s |
-| Relay maximum charge | 100 |
-| Relay charge per hit | 12 |
-| Base relay decay | 8/s |
-| Base shield-open duration | 5.3 s |
+| Value                        |   Baseline |
+| ---------------------------- | ---------: |
+| Canvas simulation size       | 1280 × 720 |
+| Position/aim sample interval |     0.05 s |
+| Maximum Echo count           |          4 |
+| Player maximum health        |        100 |
+| Player movement speed        |   265 px/s |
+| Player base damage           |         12 |
+| Base fire interval           |    0.115 s |
+| Player bullet speed          |   760 px/s |
+| Default Echo damage ratio    |       0.65 |
+| Amplified Echo damage ratio  |       0.80 |
+| Dash speed                   |   720 px/s |
+| Dash duration                |     0.14 s |
+| Base dash cooldown           |     1.35 s |
+| Dash invulnerability         |     0.22 s |
+| Relay maximum charge         |        100 |
+| Relay charge per hit         |         12 |
+| Base relay decay             |        8/s |
+| Base shield-open duration    |      5.3 s |
 
 ### Stage and rank configuration
 
-| Stage | Chrono Anchor HP | S | A | B | C |
-|---|---:|---:|---:|---:|---|
-| 1 — AWAKENING | 650 | 900 | 720 | 520 | below B |
-| 2 — SPLIT CURRENT | 720 | 980 | 760 | 540 | below B |
-| 3 — RESCUE WINDOW | 760 | 1050 | 800 | 570 | below B |
+| Stage             | Chrono Anchor HP |    S |   A |   B | C       |
+| ----------------- | ---------------: | ---: | --: | --: | ------- |
+| 1 — AWAKENING     |              650 |  900 | 720 | 520 | below B |
+| 2 — SPLIT CURRENT |              720 |  980 | 760 | 540 | below B |
+| 3 — RESCUE WINDOW |              760 | 1050 | 800 | 570 | below B |
 
 ## Echo recording contract
 

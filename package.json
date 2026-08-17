@@ -1,0 +1,15 @@
+{
+  "name": "openaigame1",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development tooling for the ECHO BREACH HTML5 game",
+  "scripts": {
+    "format": "prettier --write \"echo-breach/**/*.{html,css,js,json,md}\"",
+    "format:check": "prettier --check \"echo-breach/**/*.{html,css,js,json,md}\"",
+    "test": "node --test echo-breach/tests/*.test.js",
+    "check": "npm run format:check && npm test && node --check echo-breach/game.js"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
+  }
+}
