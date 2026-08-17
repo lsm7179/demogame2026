@@ -869,7 +869,7 @@ function updateEnemies(dt) {
       }
     }
     if (e.behavior === "guard-relay") {
-      const r = relays.reduce((a, b) => (dist2(e, b) < dist2(e, a) ? b : a), relays[0]);
+      const r = MonsterData.selectGuardTarget(relays, core, e);
       const n = norm(player.x - r.x, player.y - r.y);
       tx = r.x + n.x * 48;
       ty = r.y + n.y * 48;

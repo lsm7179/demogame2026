@@ -36,3 +36,13 @@ test("new temporal monsters expose data-driven behavior and rewards", () => {
     assert.ok(monsters[id].visual);
   }
 });
+
+test("relay guards fall back to the room core when a combat room has no relays", () => {
+  const core = { x: 640, y: 335 };
+  assert.equal(monsters.selectGuardTarget([], core, { x: 100, y: 100 }), core);
+  const relays = [
+    { x: 100, y: 100 },
+    { x: 500, y: 500 },
+  ];
+  assert.equal(monsters.selectGuardTarget(relays, core, { x: 450, y: 450 }), relays[1]);
+});

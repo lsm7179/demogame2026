@@ -5,7 +5,17 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
+  function selectGuardTarget(relays, core, enemy) {
+    if (!relays.length) return core;
+    return relays.reduce((nearest, relay) => {
+      const current = (enemy.x - relay.x) ** 2 + (enemy.y - relay.y) ** 2;
+      const best = (enemy.x - nearest.x) ** 2 + (enemy.y - nearest.y) ** 2;
+      return current < best ? relay : nearest;
+    }, relays[0]);
+  }
+
   return Object.freeze({
+    selectGuardTarget,
     chaser: Object.freeze({
       id: "chaser",
       name: "RIFT HOUND",
