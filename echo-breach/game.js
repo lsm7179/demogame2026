@@ -767,11 +767,8 @@ function updateEchoes(dt) {
 
 // ── 총알, 적, Stage 3 구조선 ────────────────────────────────────────────────
 function enemyStats(type) {
-  return type === "chaser"
-    ? { r: 15, hp: 30, speed: 92, score: 120 }
-    : type === "shooter"
-      ? { r: 18, hp: 46, speed: 62, score: 180 }
-      : { r: 23, hp: 95, speed: 48, score: 240 };
+  const m = MonsterData[type] || MonsterData.chaser;
+  return { r: m.radius, hp: m.hp, speed: m.speed, score: m.score };
 }
 function queueEnemies() {
   warnings = [];
@@ -802,6 +799,7 @@ function spawnEnemy(w) {
     touch: 0,
     wobble: Math.random() * 6.28,
     hitFlash: 0,
+    hurt: 0,
   });
 }
 function enemyShoot(e, target) {
@@ -827,6 +825,7 @@ function updateEnemies(dt) {
     e.fire -= dt;
     e.wobble += dt;
     e.hitFlash = Math.max(0, e.hitFlash - dt);
+    e.hurt = Math.max(0, e.hurt - dt * 8);
     const target = e.targetShuttle && shuttle && shuttle.hp > 0 ? shuttle : player;
     let tx = target.x,
       ty = target.y;
@@ -926,6 +925,7 @@ function updateBullets(dt) {
 function damageEnemy(e, dmg, byEcho) {
   e.hp -= dmg;
   e.hitFlash = 0.09;
+  e.hurt = 1;
   burst(e.x, e.y, "#ff3f63", 5, 100);
   if (e.hp <= 0) {
     e.alive = false;
@@ -936,6 +936,24 @@ function damageEnemy(e, dmg, byEcho) {
     if (byEcho) state.echoDamage += e.maxHp;
     state.lastKill = state.elapsed;
     burst(e.x, e.y, "#ff4c70", 18, 200);
+    monsterRemains(e);
+  }
+}
+function monsterRemains(e) {
+  const m = MonsterData[e.type] || MonsterData.chaser;
+  for (let i = 0; i < (e.type === "blocker" ? 8 : 5); i++) {
+    const a = Math.random() * 6.283;
+    particles.push({
+      x: e.x,
+      y: e.y,
+      vx: Math.cos(a) * (50 + Math.random() * 130),
+      vy: Math.sin(a) * (50 + Math.random() * 130),
+      life: 0.35 + Math.random() * 0.3,
+      max: 0.65,
+      color: m.color,
+      size: 3 + Math.random() * 4,
+      shard: true,
+    });
   }
 }
 function hurtShuttle(dmg) {
@@ -1536,43 +1554,104 @@ function renderEchoes() {
 function renderEnemies() {
   for (const e of enemies)
     if (e.alive) {
-      const color = e.targetShuttle
-        ? "#d43f8e"
-        : e.type === "blocker"
-          ? "#871d3b"
-          : e.type === "shooter"
-            ? "#ba2949"
-            : "#f03b56";
+      const monster = MonsterData[e.type] || MonsterData.chaser;
+      const color = e.targetShuttle ? "#d43f8e" : monster.color;
       const pulse = 1 + Math.sin(e.wobble * 4) * 0.06;
       ctx.save();
       ctx.translate(e.x, e.y);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = e.type === "blocker" ? 7 : 4;
-      ctx.lineCap = "round";
-      for (let i = 0; i < (e.type === "blocker" ? 6 : 4); i++) {
-        const a = (i / (e.type === "blocker" ? 6 : 4)) * Math.PI * 2 + e.wobble * 0.25;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(a) * e.r * 0.55, Math.sin(a) * e.r * 0.55);
-        ctx.quadraticCurveTo(
-          Math.cos(a + 0.35) * e.r,
-          Math.sin(a + 0.35) * e.r,
-          Math.cos(a) * e.r * 1.35,
-          Math.sin(a) * e.r * 1.35
-        );
-        ctx.stroke();
-      }
-      ctx.fillStyle = e.hitFlash > 0 ? "#fff" : color;
-      ctx.beginPath();
-      ctx.ellipse(0, 0, e.r * pulse, e.r * 0.82, e.wobble * 0.1, 0, 6.283);
-      ctx.fill();
-      ctx.fillStyle = "#fff1f4";
-      ctx.beginPath();
-      ctx.arc(e.type === "shooter" ? 4 : 0, -2, e.type === "blocker" ? 4 : 3, 0, 6.283);
-      ctx.fill();
+      const target = e.targetShuttle && shuttle?.hp > 0 ? shuttle : player;
+      ctx.rotate(Math.atan2(target.y - e.y, target.x - e.x));
+      ctx.scale(1 - e.hurt * 0.16, 1 + e.hurt * 0.2);
+      if (e.type === "chaser") renderRiftHound(e, color, pulse);
+      else if (e.type === "shooter") renderSporeCaster(e, color, pulse);
+      else renderAnchorBrute(e, color, pulse);
       ctx.restore();
       ctx.fillStyle = "#ff9aaa";
       ctx.fillRect(e.x - e.r, e.y - e.r - 8, (e.r * 2 * e.hp) / e.maxHp, 3);
     }
+}
+function renderRiftHound(e, color, pulse) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  const gait = Math.sin(e.wobble * 7) * 5;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(-5, side * 7);
+    ctx.lineTo(-14 + gait * side, side * 17);
+    ctx.lineTo(-21 - gait * side, side * 20);
+    ctx.stroke();
+  }
+  ctx.fillStyle = e.hitFlash > 0 ? "#fff" : color;
+  ctx.beginPath();
+  ctx.ellipse(-2, 0, e.r * 1.12 * pulse, e.r * 0.7, 0, 0, 6.283);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(8, -8);
+  ctx.lineTo(24, 0);
+  ctx.lineTo(8, 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#fff1f4";
+  ctx.fillRect(11, -5, 5, 3);
+}
+function renderSporeCaster(e, color, pulse) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * 6.283 + e.wobble * 0.18;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 8, Math.sin(a) * 8);
+    ctx.quadraticCurveTo(
+      Math.cos(a + 0.5) * 19,
+      Math.sin(a + 0.5) * 19,
+      Math.cos(a) * 25,
+      Math.sin(a) * 25
+    );
+    ctx.stroke();
+  }
+  ctx.fillStyle = e.hitFlash > 0 ? "#fff" : color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, e.r * pulse, e.r * 0.9, 0, 0, 6.283);
+  ctx.fill();
+  ctx.fillStyle = "#471022";
+  ctx.beginPath();
+  ctx.arc(5, 0, 10, 0, 6.283);
+  ctx.fill();
+  ctx.fillStyle = "#fff1f4";
+  ctx.beginPath();
+  ctx.arc(8, 0, 4, 0, 6.283);
+  ctx.fill();
+  if (e.fire < 0.45) {
+    ctx.strokeStyle = MonsterData.shooter.accent;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(8, 0, 14 + (0.45 - e.fire) * 12, 0, 6.283);
+    ctx.stroke();
+  }
+}
+function renderAnchorBrute(e, color, pulse) {
+  ctx.fillStyle = e.hitFlash > 0 ? "#fff" : color;
+  ctx.beginPath();
+  ctx.ellipse(-3, 0, e.r * pulse, e.r * 0.92, 0, 0, 6.283);
+  ctx.fill();
+  ctx.fillStyle = "#4a1125";
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(-5, side * 8);
+    ctx.lineTo(9, side * 17);
+    ctx.lineTo(21, side * 12);
+    ctx.lineTo(14, side * 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.strokeStyle = MonsterData.blocker.accent;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(5, 0, 12, -1.15, 1.15);
+  ctx.stroke();
+  ctx.fillStyle = "#fff1f4";
+  ctx.fillRect(3, -3, 7, 6);
 }
 function renderBullets() {
   ctx.lineCap = "round";
@@ -1589,9 +1668,17 @@ function renderParticles() {
   for (const p of particles) {
     ctx.globalAlpha = clamp(p.life / p.max, 0, 1) * (p.ghost ? 0.35 : 1);
     ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, 6.283);
-    ctx.fill();
+    if (p.shard) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.life * 9);
+      ctx.fillRect(-p.size, -p.size * 0.35, p.size * 2, p.size * 0.7);
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, 6.283);
+      ctx.fill();
+    }
   }
   ctx.globalAlpha = 1;
 }
