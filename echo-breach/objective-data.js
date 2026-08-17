@@ -1,0 +1,57 @@
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  root.ObjectiveData = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  function objective(type, core, relayPositions, movingRelayIndex = -1) {
+    return Object.freeze({
+      type,
+      core: Object.freeze(core),
+      relayCount: relayPositions.length,
+      requiredRelays: relayPositions.length,
+      relayPositions: Object.freeze(relayPositions.map((p) => Object.freeze({ ...p }))),
+      movingRelayIndex,
+      relayChargeMax: 100,
+      relayGain: 12,
+      relayDecay: 8,
+      shieldOpenSeconds: 5.3,
+    });
+  }
+
+  const data = {
+    awakening: objective("anchor", { x: 640, y: 335 }, [
+      { x: 640, y: 130 },
+      { x: 820, y: 440 },
+      { x: 460, y: 440 },
+    ]),
+    "split-current": objective(
+      "gate",
+      { x: 990, y: 335 },
+      [
+        { x: 770, y: 170 },
+        { x: 1060, y: 500 },
+        { x: 830, y: 520 },
+      ],
+      1
+    ),
+    "rescue-window": objective("rescue", { x: 640, y: 250 }, [
+      { x: 430, y: 210 },
+      { x: 850, y: 210 },
+      { x: 640, y: 455 },
+    ]),
+  };
+
+  function isValid(config) {
+    return (
+      config.relayCount >= 1 &&
+      config.relayCount <= 4 &&
+      config.requiredRelays >= 1 &&
+      config.requiredRelays <= config.relayCount &&
+      config.relayPositions.length === config.relayCount
+    );
+  }
+
+  return Object.freeze({ ...data, isValid });
+});

@@ -79,9 +79,8 @@ const STAGES = [
     ],
     arena: { type: "radial", tint: "#07101d" },
     difficulty: { coreHp: 650 },
-    relays: { count: 3, moving: false },
+    objective: ObjectiveData.awakening,
     waves: [["chaser", "shooter", "blocker"]],
-    objective: "anchor",
     unlock: 1,
     rewards: ["weapon", "time", "hull"],
     ranks: { S: 900, A: 720, B: 520 },
@@ -97,9 +96,8 @@ const STAGES = [
     ],
     arena: { type: "split", tint: "#07131a" },
     difficulty: { coreHp: 720 },
-    relays: { count: 3, moving: true },
+    objective: ObjectiveData["split-current"],
     waves: [["shooter", "chaser", "blocker", "shooter"]],
-    objective: "gate",
     unlock: 2,
     rewards: ["weapon", "time"],
     ranks: { S: 980, A: 760, B: 540 },
@@ -115,9 +113,8 @@ const STAGES = [
     ],
     arena: { type: "rescue", tint: "#100b19" },
     difficulty: { coreHp: 760 },
-    relays: { count: 3, moving: false },
+    objective: ObjectiveData["rescue-window"],
     waves: [["chaser", "shooter", "chaser", "blocker"]],
-    objective: "rescue",
     unlock: 3,
     rewards: ["hull", "time", "weapon"],
     ranks: { S: 1050, A: 800, B: 570 },
@@ -130,9 +127,8 @@ const STAGES = [
     briefing: ["적대적 기록 신호 감지."],
     arena: { type: "locked" },
     difficulty: {},
-    relays: {},
+    objective: { type: "future" },
     waves: [],
-    objective: "future",
     unlock: 4,
     rewards: [],
     ranks: { S: 1, A: 1, B: 1 },
@@ -146,9 +142,8 @@ const STAGES = [
     briefing: ["중앙 AI 접속 대기."],
     arena: { type: "locked" },
     difficulty: {},
-    relays: {},
+    objective: { type: "future" },
     waves: [],
-    objective: "future",
     unlock: 5,
     rewards: [],
     ranks: { S: 1, A: 1, B: 1 },
@@ -912,7 +907,10 @@ function updateBullets(dt) {
       if (!gone)
         for (const r of relays)
           if (hit(b, r)) {
-            r.charge = Math.min(100, r.charge + BASE.RELAY_GAIN);
+            r.charge = Math.min(
+              stage.objective.relayChargeMax,
+              r.charge + stage.objective.relayGain
+            );
             r.lastHit = state.elapsed;
             if (b.pierce-- <= 0) gone = true;
             break;
@@ -973,45 +971,28 @@ function hurtShuttle(dmg) {
 
 // ── 릴레이, 장벽, Chrono Anchor ────────────────────────────────────────────
 function makeObjectives() {
-  const hp = core?.hp ?? stage.difficulty.coreHp,
+  const objective = stage.objective,
+    hp = core?.hp ?? stage.difficulty.coreHp,
     c = {
-      x: stage.number === 2 ? 990 : 640,
-      y: stage.number === 3 ? 250 : 335,
+      x: objective.core.x,
+      y: objective.core.y,
       r: 46,
       hp,
       maxHp: stage.difficulty.coreHp,
     };
-  let pos =
-    stage.number === 2
-      ? [
-          [770, 170],
-          [1060, 500],
-          [830, 520],
-        ]
-      : stage.number === 3
-        ? [
-            [430, 210],
-            [850, 210],
-            [640, 455],
-          ]
-        : [
-            [640, 130],
-            [820, 440],
-            [460, 440],
-          ];
   return {
     c,
-    rs: pos.map((p, i) => ({
-      x: p[0],
-      y: p[1],
-      baseX: p[0],
-      baseY: p[1],
+    rs: objective.relayPositions.slice(0, objective.relayCount).map((p, i) => ({
+      x: p.x,
+      y: p.y,
+      baseX: p.x,
+      baseY: p.y,
       r: 30,
       charge: 0,
       active: false,
       lastHit: -9,
       index: i,
-      moving: stage.relays.moving && i === 1,
+      moving: i === objective.movingRelayIndex,
     })),
   };
 }
@@ -1048,16 +1029,19 @@ function updateObjectives(dt) {
     }
     const was = r.active;
     if (state.elapsed - r.lastHit > 0.18)
-      r.charge = Math.max(0, r.charge - BASE.RELAY_DECAY * diff.relayDecay * dt);
-    r.active = r.charge >= BASE.RELAY_MAX;
+      r.charge = Math.max(0, r.charge - stage.objective.relayDecay * diff.relayDecay * dt);
+    r.active = r.charge >= stage.objective.relayChargeMax;
     if (r.active && !was) {
       state.score += 250;
       sfx.relay();
       burst(r.x, r.y, "#b88cff", 20, 140);
     }
   }
-  if (relays.every((r) => r.active) && state.shieldTimer <= 0) {
-    state.shieldTimer = diff.shieldTime;
+  if (
+    relays.filter((r) => r.active).length >= stage.objective.requiredRelays &&
+    state.shieldTimer <= 0
+  ) {
+    state.shieldTimer = stage.objective.shieldOpenSeconds * (diff.shieldTime / BASE.SHIELD_OPEN);
     state.score += 500 + echoes.length * 100;
     sfx.shield();
     shake = 9;
@@ -1290,7 +1274,7 @@ function showStageSelect() {
   $("stage-cards").innerHTML = STAGES.map((s) => {
     const locked = s.locked || s.number > save.unlockedStage,
       r = save.stages[s.id];
-    return `<button class="card ${locked ? "locked" : ""}" data-stage="${s.id}" ${locked ? "disabled" : ""}><span class="num">STAGE 0${s.number}</span>${r ? `<b class="rank">${r.rank}</b>` : ""}<h3>${s.name}</h3><p>${s.subtitle}</p><span class="tag">${locked ? "LOCKED" : s.objective.toUpperCase()}</span></button>`;
+    return `<button class="card ${locked ? "locked" : ""}" data-stage="${s.id}" ${locked ? "disabled" : ""}><span class="num">STAGE 0${s.number}</span>${r ? `<b class="rank">${r.rank}</b>` : ""}<h3>${s.name}</h3><p>${s.subtitle}</p><span class="tag">${locked ? "LOCKED" : s.objective.type.toUpperCase()}</span></button>`;
   }).join("");
 }
 function showBriefing(s) {
@@ -1302,7 +1286,7 @@ function showBriefing(s) {
   $("briefing-copy").innerHTML = s.briefing.map((x) => `<div>› ${x}</div>`).join("");
   $("briefing-objective").textContent =
     s.number === 1
-      ? "3개 릴레이 동시 동기화 → Chrono Anchor 파괴"
+      ? `${s.objective.requiredRelays}개 릴레이 동시 동기화 → Chrono Anchor 파괴`
       : s.number === 2
         ? "Echo로 스위치 사격 유지 → 장벽 통과 → 이동 릴레이 동기화"
         : "탈출선 호위 기록 → 릴레이 동기화 → Anchor 파괴";
@@ -1349,7 +1333,7 @@ function updateHUD() {
       : stage.number === 2 && gate && !gate.open
         ? "KEEP SWITCH CHARGED — OPEN THE GATE"
         : relays.some((r) => r.active)
-          ? `${relays.filter((r) => r.active).length} / 3 RELAYS SYNCHRONIZED`
+          ? `${relays.filter((r) => r.active).length} / ${stage.objective.requiredRelays} RELAYS SYNCHRONIZED`
           : stage.number === 3
             ? "RECORD ESCORT FIRE — THEN ATTACK RELAYS"
             : echoes.length
@@ -1487,7 +1471,7 @@ function renderObjectives() {
     ctx.fill();
   }
   for (const r of relays) {
-    const p = r.charge / 100;
+    const p = r.charge / stage.objective.relayChargeMax;
     ctx.strokeStyle = r.active ? "#7fffee" : "#8d65e9";
     ctx.lineWidth = 5;
     ctx.beginPath();
