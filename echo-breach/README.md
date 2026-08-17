@@ -1,6 +1,6 @@
 # ECHO BREACH
 
-NEXUS 연구시설은 파괴 직전의 순간을 반복하고 있습니다. 기체 **ECHO-07**은 이전 시간선의 이동·조준·사격·대시 기록을 Echo로 전송해 각 구역의 **Chrono Anchor**를 파괴하고 생존자를 구해야 합니다.
+NEXUS 연구시설은 파괴 직전의 순간을 반복하고 있습니다. 인간 요원 **ECHO-07**은 이전 시간선의 이동·조준·자동 사격·대시 기록을 Echo로 전송해 각 구역의 **Chrono Anchor**를 파괴하고 생존자를 구해야 합니다.
 
 저장소: https://github.com/lsm7179/demogame2026
 
@@ -34,11 +34,13 @@ npm run check
 ## 조작
 
 - WASD: 이동
-- 마우스: 조준 / 왼쪽 버튼: 사격 또는 Charge Lance 충전
+- 마우스: 조준 방향 지정 / Canvas 안에서 자동 사격
 - Space: 대시
 - R: 현재 루프 조기 기록
 - Esc: 일시정지
 - M: 음소거
+
+왼쪽 버튼은 현재 전투 기능에 사용하지 않습니다. 포인터가 게임 영역을 벗어나면 마지막 조준 방향은 유지되지만 자동 사격은 중단됩니다.
 
 ## 캠페인 흐름
 
@@ -69,6 +71,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `index.html`: 캠페인 메뉴, 브리핑, 전투 HUD, 결과와 업그레이드 화면
 - `style.css`: 반응형 SF 인터페이스
 - `game.js`: 데이터, 저장, 전투, Echo 기록/재생, 스테이지 규칙
+- `game-balance.js`: 자동 사격과 무기 핵심 밸런스 상수
 - `echo-core.js`: 브라우저와 Node 테스트가 공유하는 순수 Echo 시간 로직
 - `version.json`: 공개 게임 버전과 저장 스키마 버전
 - `manifest.webmanifest`: 설치·출시 메타데이터

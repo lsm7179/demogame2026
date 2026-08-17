@@ -9,7 +9,7 @@ const BASE = Object.freeze({
   ACCEL: 13,
   PLAYER_SPEED: 265,
   PLAYER_HP: 100,
-  FIRE_RATE: 0.22,
+  FIRE_RATE: GameBalance.baseFireInterval,
   BULLET_SPEED: 760,
   PLAYER_DAMAGE: 12,
   DASH_SPEED: 720,
@@ -160,7 +160,7 @@ const UPGRADES = [
     id: "split-shot",
     name: "SPLIT SHOT",
     category: "WEAPON",
-    description: "3방향 사격. 탄환 피해 70%. 릴레이 동기화 범위가 넓어진다.",
+    description: "3방향 자동 사격. 탄환 피해 45%. 릴레이 동기화 범위가 넓어진다.",
     rarity: "rare",
     incompatible: ["pulse-cannon", "charge-lance"],
     visual: "TRIPLE MUZZLE",
@@ -178,7 +178,7 @@ const UPGRADES = [
     id: "charge-lance",
     name: "CHARGE LANCE",
     category: "WEAPON",
-    description: "누르고 충전, 놓아서 발사. 완충 시 적과 릴레이 관통.",
+    description: "자동 충전 후 완충 사격. 적과 릴레이를 관통한다.",
     rarity: "epic",
     incompatible: ["split-shot", "pulse-cannon"],
     visual: "CHARGE RING",
@@ -415,6 +415,9 @@ function bindInputs() {
     mouse.y = (e.clientY - r.top - view.oy) / view.scale;
     mouse.inside = true;
   });
+  canvas.addEventListener("pointerenter", () => {
+    mouse.inside = true;
+  });
   canvas.addEventListener("pointerdown", (e) => {
     if (e.button === 0) initAudio();
   });
@@ -565,8 +568,8 @@ function updatePlayer(dt) {
   if (stats.weapon === "charge") {
     state.charging = autoFire;
     if (autoFire) {
-      state.charge = Math.min(1.25, state.charge + dt);
-      if (state.charge >= 1.25) releaseCharge(false);
+      state.charge = Math.min(GameBalance.chargeLance.fullChargeSeconds, state.charge + dt);
+      if (state.charge >= GameBalance.chargeLance.fullChargeSeconds) releaseCharge(false);
     }
   } else if (autoFire && player.fireCd <= 0) {
     fireWeapon(player, false, makeShotProfile(player.angle));
@@ -588,7 +591,11 @@ function makeShotProfile(angle, charge = 0) {
     charge,
   };
   if (stats.weapon === "split")
-    Object.assign(p, { count: 3, spread: 0.16, damage: stats.playerDamage * 0.45 });
+    Object.assign(p, {
+      count: GameBalance.splitShot.projectileCount,
+      spread: GameBalance.splitShot.spread,
+      damage: stats.playerDamage * GameBalance.splitShot.damageMultiplier,
+    });
   if (stats.weapon === "pulse")
     Object.assign(p, { damage: stats.playerDamage * 1.55, pierce: 3, size: 6, speed: 650 });
   if (stats.weapon === "charge")
@@ -1110,6 +1117,7 @@ function startStage() {
   core = { hp: stage.difficulty.coreHp };
   resetLoopWorld();
   hideAll();
+  mouse.inside = canvas.matches(":hover");
   ui.hud.classList.remove("hidden");
   ui.muteGame.classList.remove("hidden");
   last = performance.now();

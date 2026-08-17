@@ -20,7 +20,7 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 ## Echo 기록 규칙
 
-위치와 조준은 50ms 간격으로 기록하고 시간 기준으로 보간한다. 사격 이벤트는 `weapon, angle, count, spread, damage, pierce, size, speed, charge`를 보존한다. 대시는 방향과 시각 이벤트를 기록한다. Charge Lance는 버튼을 놓는 순간 완성된 공격 프로필을 기록하므로 Echo의 충전 결과와 발사 시간이 동일하다. Echo 피해 배율은 기본 65%, Amplifier 보유 시 80%다.
+위치와 조준은 50ms 간격으로 기록하고 시간 기준으로 보간한다. Canvas 안에 마우스가 있는 동안 ECHO-07은 0.22초 간격으로 조준 방향에 자동 사격한다. 실제 발사 이벤트만 `weapon, angle, count, spread, damage, pierce, size, speed, charge`와 함께 보존한다. 대시는 방향과 시각 이벤트를 기록한다. Charge Lance는 자동 충전 후 완충 시 발사되므로 Echo의 충전 완료 결과와 발사 시간이 동일하다. Echo 피해 배율은 기본 65%, Amplifier 보유 시 80%다.
 
 ## 스테이지별 Echo 판단
 
@@ -38,7 +38,7 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 ## 업그레이드 규칙
 
-무기 업그레이드 세 개는 상호 비호환이다. Split Shot은 3발·개별 70%, Pulse Cannon은 발사 간격 162%·피해 155%·3회 관통, Charge Lance는 최대 1.25초 충전과 완충 관통을 제공한다. Amplifier는 현재 피해 92%와 Echo 80%, Extended Memory는 기록 종료 후 2초 지원 사격, Record Override는 저장/폐기 선택을 제공한다. Hull은 +35 HP/-7% 속도, Thruster는 거리 -12%인 2회 충전, Emergency Rewind는 스테이지 1회 2초 전 위치와 30% 체력 복귀다.
+무기 업그레이드 세 개는 상호 비호환이다. Split Shot은 3발·개별 45%로 총 기대 피해를 기본의 135%로 제한한다. Pulse Cannon은 발사 간격 162%·피해 155%·3회 관통, Charge Lance는 1.25초 자동 충전과 완충 관통을 제공한다. Amplifier는 현재 피해 92%와 Echo 80%, Extended Memory는 기록 종료 후 2초 지원 사격, Record Override는 저장/폐기 선택을 제공한다. Hull은 +35 HP/-7% 속도, Thruster는 거리 -12%인 2회 충전, Emergency Rewind는 스테이지 1회 2초 전 위치와 30% 체력 복귀다.
 
 ## 릴레이, Anchor와 적
 
