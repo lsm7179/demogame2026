@@ -48,11 +48,13 @@ npm run check
 
 ## 플레이 가능한 스테이지
 
-- **Stage 1 — AWAKENING:** 진입실, Anchor 연구실과 양쪽 릴레이 측실을 오가며 Echo 동기화의 기본을 익힙니다.
+- **Stage 1 — AWAKENING:** CONTAINMENT HALL과 INFESTED LAB 전투를 끝내 출구를 개방한 뒤 ANCHOR CHAMBER에서 방 단위 Echo 기록으로 릴레이 2개를 동기화합니다.
 - **Stage 2 — SPLIT CURRENT:** 스위치 제어실의 Echo가 사격을 계속해야 중앙 통로가 열리고 반대편 Anchor실로 진입할 수 있습니다.
 - **Stage 3 — RESCUE WINDOW:** 탈출선 격납고를 호위하는 기록을 남긴 뒤 연결 통로를 지나 릴레이실과 Anchor 제어실을 공략합니다.
 
 ECHO-07과 Echo는 머리·몸통·좌우 다리가 구분되는 8방향 탑다운 인간 요원으로 표현됩니다. 몸의 방향은 8방향으로 읽히지만 총기는 실제 마우스 조준각을 유지하며, 보행·사격 반동·대시 기울기·피격 움찔 애니메이션을 사용합니다. 시간 오염체는 추격형 **RIFT HOUND**, 원거리형 **SPORE CASTER**, 릴레이 차단형 **ANCHOR BRUTE**로 역할과 외형이 구분됩니다.
+
+감속을 거는 **CHRONO LEECH**, 릴레이 감소를 강화하는 **CORE GUARD**, 사망 후 적과 플레이어 모두를 공격하는 **RIFT BLOATER**도 등장합니다. 처치 시 Chrono Shard가 드롭되며 게이지 100에서 8초 Overdrive가 발동합니다. Anchor는 체력에 따라 5단계로 변하고 플레이어와 Echo가 0.25초 안에 함께 명중하면 Temporal Overload가 발생합니다.
 
 ## 난이도
 
@@ -77,6 +79,8 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `monster-data.js`: 시간 오염 몬스터 역할과 기존 전투 수치
 - `room-data.js`: Stage 1~3 방, 벽, 통로와 안전한 생성 지점
 - `collision-core.js`: 원형 액터의 축별 벽 슬라이딩과 고속 이동 충돌
+- `objective-data.js`: 릴레이 수·필요 수·위치·충전과 Anchor 목표
+- `temporal-core.js`: Shard, Overdrive, Anchor 단계와 Overload 순수 판정
 - `echo-core.js`: 브라우저와 Node 테스트가 공유하는 순수 Echo 시간 로직
 - `version.json`: 공개 게임 버전과 저장 스키마 버전
 - `manifest.webmanifest`: 설치·출시 메타데이터

@@ -2,6 +2,20 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.4.0] - 2026-08-17
+
+### Added
+
+- Added three sequential Stage 1 combat rooms with locked exits and room-scoped Echo recordings.
+- Added CHRONO LEECH, CORE GUARD, and RIFT BLOATER behaviors.
+- Added collectible Chrono Shards and eight-second Temporal Overdrive.
+- Added staged Anchor damage presentation and configurable Temporal Overload cooperation.
+
+### Changed
+
+- Reduced Stage 1–3 objectives to two required relays from data-driven one-to-four relay configurations.
+- Changed Split Shot to two 70% projectiles at plus/minus five degrees.
+
 ## [0.3.0] - 2026-08-17
 
 ### Added

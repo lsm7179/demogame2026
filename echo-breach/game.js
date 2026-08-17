@@ -1094,7 +1094,11 @@ function makeObjectives() {
 function buildArena() {
   const layout = RoomData[stage.id];
   const encounter = currentEncounter();
-  rooms = layout ? layout.rooms.map((room) => ({ ...room })) : [];
+  rooms = encounter
+    ? [{ id: encounter.id, name: encounter.name, x: 35, y: 45, w: 1210, h: 630 }]
+    : layout
+      ? layout.rooms.map((room) => ({ ...room }))
+      : [];
   walls = (encounter?.walls || layout?.walls || []).map((wall) => ({ ...wall, open: false }));
   switches = [];
   shuttle = null;

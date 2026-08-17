@@ -1,6 +1,6 @@
 {
   "name": "openaigame1",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Development tooling for the ECHO BREACH HTML5 game",
   "scripts": {

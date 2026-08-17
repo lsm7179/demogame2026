@@ -70,6 +70,15 @@
 - PASS: 로컬 정적 서버에서 신규 데이터 스크립트 200 응답 및 Stage 1 전투 렌더링
 - PASS: 고속 대시 벽 관통, 대각선 슬라이딩, 수직 충돌과 닫히는 게이트 배출 회귀 테스트
 
+## v0.4.0 진행·보상 회귀
+
+- PASS: Stage 1 세 방 순서와 방 전환 시 Echo·총알·적·파티클·픽업 정리
+- PASS: 1~4개 릴레이 구성 검증 및 Stage 1~3 기본 2개 확인
+- PASS: Split Shot 2발 × 70%, 중심 기준 좌우 5도 확인
+- PASS: 신규 몬스터 behavior/reward/visual 데이터 검증
+- PASS: Shard 100 도달 시 Overdrive 발동·8초 종료 확인
+- PASS: Anchor 단계와 Temporal Overload 시간창·쿨다운 순수 판정
+
 ## 발견한 위험
 
 ### RESOLVED — 유지보수하기 어려운 압축 소스

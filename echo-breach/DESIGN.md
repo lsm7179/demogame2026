@@ -38,15 +38,17 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 ## 업그레이드 규칙
 
-무기 업그레이드 세 개는 상호 비호환이다. Split Shot은 3발·개별 45%로 총 기대 피해를 기본의 135%로 제한한다. Pulse Cannon은 발사 간격 162%·피해 155%·3회 관통, Charge Lance는 1.25초 자동 충전과 완충 관통을 제공한다. Amplifier는 현재 피해 92%와 Echo 80%, Extended Memory는 기록 종료 후 2초 지원 사격, Record Override는 저장/폐기 선택을 제공한다. Hull은 +35 HP/-7% 속도, Thruster는 거리 -12%인 2회 충전, Emergency Rewind는 스테이지 1회 2초 전 위치와 30% 체력 복귀다.
+무기 업그레이드 세 개는 상호 비호환이다. Split Shot은 중심 기준 좌우 5도의 2발·개별 70%로 총 잠재 피해 140%다. Pulse Cannon은 발사 간격 162%·피해 155%·3회 관통, Charge Lance는 1.25초 자동 충전과 완충 관통을 제공한다. Amplifier는 현재 피해 92%와 Echo 80%, Extended Memory는 기록 종료 후 2초 지원 사격, Record Override는 저장/폐기 선택을 제공한다. Hull은 +35 HP/-7% 속도, Thruster는 거리 -12%인 2회 충전, Emergency Rewind는 스테이지 1회 2초 전 위치와 30% 체력 복귀다.
 
 ## 릴레이, Anchor와 적
 
-릴레이는 100 충전, 탄환당 12, 기본 초당 8 감소다. 세 릴레이 동시 완충 시 난이도별 시간만큼 보호막이 열린다. Anchor 체력은 Stage 1/2/3에서 650/720/760이며 누적 피해는 루프를 넘는다. RIFT HOUND는 이동 압박, SPORE CASTER는 예고 링 뒤 회피 가능한 탄환, ANCHOR BRUTE는 장갑 실루엣으로 릴레이 시야를 막는다. 내부 전투 수치는 기존 Chaser/Shooter/Blocker와 동일하다. 루프마다 적과 장치는 초기화된다.
+릴레이는 스테이지 데이터 기준 기본 2개, 필요 2개이며 100 충전, 탄환당 12, 기본 초당 8 감소다. 필요한 릴레이가 동시 완충되면 난이도별 시간만큼 보호막이 열린다. Anchor 체력은 Stage 1/2/3에서 650/720/760이며 누적 피해는 루프를 넘는다. RIFT HOUND는 이동 압박, SPORE CASTER는 원거리 사격, ANCHOR BRUTE는 릴레이 시야 방해 역할이다. LEECH는 제한된 감속, CORE GUARD는 릴레이 감소 강화, RIFT BLOATER는 경고 후 쌍방 폭발을 제공한다.
 
 ## 연결형 룸 규칙
 
-Stage 1~3은 `room-data.js`의 방·벽·적 생성 지점 데이터로 구성한다. 모든 루프에서 동일한 월드 좌표로 재생성되므로 Echo 기록 좌표가 변하지 않는다. Stage 1의 릴레이 측실은 시간선별 사격 위치를, Stage 2의 스위치실과 게이트는 장치 조작자 역할을, Stage 3의 격납고와 Anchor 제어실은 호위와 공략 역할 분리를 강조한다. 적은 경고 후 도달 가능한 방 안에서만 생성된다.
+Stage 1은 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER의 순차 방 전투다. 앞의 두 방은 적 전멸 후 출구가 열리며 다음 방에서 Echo 기록을 새로 시작한다. 체력·점수·업그레이드·Overdrive는 유지한다. Stage 2~3은 `room-data.js`의 기존 방·벽·적 생성 지점 데이터를 유지한다.
+
+몬스터가 떨어뜨리는 Chrono Shard는 플레이어만 흡수한다. 게이지 100에서 8초 Overdrive가 자동 발동해 플레이어 연사 +25%, Echo 피해 +30%, Anchor 피해 +50%를 제공한다. Anchor는 ARMORED/CRACKED/UNSTABLE/CRITICAL/COLLAPSED 단계를 가지며 플레이어와 Echo가 0.25초 안에 명중하면 내부 쿨다운 후 Temporal Overload가 발생한다.
 
 ## 랭크
 
