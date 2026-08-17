@@ -528,6 +528,9 @@ function makePlayer() {
     dashStock: stats.dashCharges,
     dashLeft: 0,
     invuln: 0,
+    animTime: 0,
+    motion: 0,
+    recoil: 0,
   };
 }
 function updatePlayer(dt) {
@@ -552,6 +555,9 @@ function updatePlayer(dt) {
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   player.fireCd -= dt;
   player.invuln -= dt;
+  player.recoil = Math.max(0, player.recoil - dt * 9);
+  player.motion = clamp(Math.hypot(player.vx, player.vy) / stats.speed, 0, 1);
+  player.animTime += dt * (2.5 + player.motion * 8);
   if (player.dashStock < stats.dashCharges) {
     player.dashCd -= dt;
     if (player.dashCd <= 0) {
@@ -609,6 +615,7 @@ function makeShotProfile(angle, charge = 0) {
 }
 function fireWeapon(owner, isEcho, profile, record = true) {
   owner.fireCd = stats.fireRate;
+  owner.recoil = 1;
   for (let i = 0; i < profile.count; i++) {
     const off = (i - (profile.count - 1) / 2) * profile.spread,
       a = profile.a + off,
@@ -717,6 +724,9 @@ function makeEcho(rec, i) {
     eventIndex: 0,
     finished: false,
     extendedCd: 0,
+    animTime: 0,
+    motion: 0,
+    recoil: 0,
   };
 }
 function updateEchoes(dt) {
@@ -729,10 +739,15 @@ function updateEchoes(dt) {
     }
     e.finished = false;
     if (t <= e.rec.duration) {
+      const oldX = e.x,
+        oldY = e.y;
       const pose = EchoCore.interpolatePose(e.rec.samples, t);
       e.x = pose.x;
       e.y = pose.y;
       e.angle = pose.angle;
+      e.motion = clamp(Math.hypot(e.x - oldX, e.y - oldY) / Math.max(dt * stats.speed, 1), 0, 1);
+      e.animTime += dt * (2.5 + e.motion * 8);
+      e.recoil = Math.max(0, e.recoil - dt * 9);
       const due = EchoCore.collectDueEvents(e.rec.events, e.eventIndex, t);
       e.eventIndex = due.nextIndex;
       for (const ev of due.events) {
@@ -1469,31 +1484,43 @@ function renderActor(o, isEcho) {
   ctx.shadowColor = isEcho ? "#45f5e9" : "#ffb45d";
   const suit = isEcho ? "#45f5e9" : "#f5f8ff";
   const accent = isEcho ? "#77fff5" : "#ffab55";
+  const stride = Math.sin(o.animTime || 0) * 5 * (o.motion || 0);
+  const bob = Math.abs(Math.sin(o.animTime || 0)) * 1.5 * (o.motion || 0);
+  const recoil = (o.recoil || 0) * 5;
+  const dashLean = o.dashLeft > 0 ? 4 : 0;
   ctx.strokeStyle = suit;
   ctx.lineWidth = 5;
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(-7, 7);
-  ctx.lineTo(-11, 17);
-  ctx.moveTo(3, 8);
-  ctx.lineTo(6, 18);
+  ctx.moveTo(-6 - dashLean, 7 + bob);
+  ctx.lineTo(-11 - dashLean, 17 + stride);
+  ctx.moveTo(3 - dashLean, 8 + bob);
+  ctx.lineTo(7 - dashLean, 18 - stride);
   ctx.stroke();
   ctx.fillStyle = suit;
   ctx.beginPath();
-  ctx.roundRect(-10, -10, 20, 23, 7);
+  ctx.roundRect(-10 - dashLean, -10 + bob, 20, 23, 7);
   ctx.fill();
+  ctx.fillStyle = isEcho ? "rgba(8,44,50,.7)" : "#26334a";
+  ctx.fillRect(-7 - dashLean, -5 + bob, 12, 8);
   ctx.fillStyle = accent;
   ctx.beginPath();
-  ctx.arc(-1, -15, 7, 0, 6.283);
+  ctx.arc(-1 - dashLean, -15 + bob, 7, 0, 6.283);
   ctx.fill();
+  ctx.fillStyle = isEcho ? "#bafffa" : "#182033";
+  ctx.fillRect(1 - dashLean, -18 + bob, 5, 3);
   ctx.strokeStyle = accent;
   ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.moveTo(2, -5);
-  ctx.lineTo(15, -1);
+  ctx.moveTo(1 - dashLean, -5 + bob);
+  ctx.lineTo(14 - recoil, -1);
+  ctx.moveTo(-3 - dashLean, -3 + bob);
+  ctx.lineTo(10 - recoil, 3);
   ctx.stroke();
   ctx.fillStyle = accent;
-  ctx.fillRect(10, -4, 22, 7);
+  ctx.fillRect(9 - recoil, -4, 23, 7);
+  ctx.fillStyle = isEcho ? "#d5fffc" : "#fff1d7";
+  ctx.fillRect(27 - recoil, -2, 7, 3);
   if (!isEcho && state.charging) {
     ctx.strokeStyle = "#ffe18a";
     ctx.lineWidth = 3;
