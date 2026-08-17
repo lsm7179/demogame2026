@@ -286,6 +286,7 @@ let save = loadSave(),
   bullets = [],
   particles = [],
   pickups = [],
+  explosions = [],
   warnings = [],
   echoes = [],
   recordings = [];
@@ -328,6 +329,7 @@ function freshState() {
     roomIndex: 0,
     roomCleared: false,
     roomTransition: 0,
+    slowTimer: 0,
     history: [],
   };
 }
@@ -543,8 +545,10 @@ function updatePlayer(dt) {
     n = norm(ix, iy);
   if (!ix && !iy) n = { x: 0, y: 0 };
   const blend = 1 - Math.exp(-BASE.ACCEL * dt);
-  player.vx = lerp(player.vx, n.x * stats.speed, blend);
-  player.vy = lerp(player.vy, n.y * stats.speed, blend);
+  state.slowTimer = Math.max(0, state.slowTimer - dt);
+  const moveSpeed = stats.speed * (state.slowTimer > 0 ? 0.78 : 1);
+  player.vx = lerp(player.vx, n.x * moveSpeed, blend);
+  player.vy = lerp(player.vy, n.y * moveSpeed, blend);
   let moveX, moveY;
   if (player.dashLeft > 0) {
     player.dashLeft -= dt;
@@ -561,7 +565,7 @@ function updatePlayer(dt) {
   player.invuln -= dt;
   player.recoil = Math.max(0, player.recoil - dt * 9);
   player.hurtAnim = Math.max(0, player.hurtAnim - dt * 7);
-  player.motion = clamp(Math.hypot(player.vx, player.vy) / stats.speed, 0, 1);
+  player.motion = clamp(Math.hypot(player.vx, player.vy) / moveSpeed, 0, 1);
   player.animTime += dt * (2.5 + player.motion * 8);
   if (player.dashStock < stats.dashCharges) {
     player.dashCd -= dt;
@@ -775,7 +779,7 @@ function updateEchoes(dt) {
 // ── 총알, 적, Stage 3 구조선 ────────────────────────────────────────────────
 function enemyStats(type) {
   const m = MonsterData[type] || MonsterData.chaser;
-  return { r: m.radius, hp: m.hp, speed: m.speed, score: m.score };
+  return { r: m.radius, hp: m.hp, speed: m.speed, score: m.score, behavior: m.behavior };
 }
 function queueEnemies() {
   warnings = [];
@@ -802,6 +806,7 @@ function spawnEnemy(w) {
     maxHp: q.hp,
     speed: q.speed,
     score: q.score,
+    behavior: q.behavior,
     alive: true,
     fire: 1 + Math.random(),
     touch: 0,
@@ -837,7 +842,7 @@ function updateEnemies(dt) {
     const target = e.targetShuttle && shuttle && shuttle.hp > 0 ? shuttle : player;
     let tx = target.x,
       ty = target.y;
-    if (e.type === "shooter") {
+    if (e.behavior === "shoot") {
       const d = Math.hypot(target.x - e.x, target.y - e.y),
         dir = d < 245 ? -1 : d > 360 ? 1 : 0;
       tx = e.x + (target.x - e.x) * dir;
@@ -847,13 +852,19 @@ function updateEnemies(dt) {
         e.fire = 1.65;
       }
     }
-    if (e.type === "blocker") {
+    if (e.behavior === "guard-relay") {
       const r = relays.reduce((a, b) => (dist2(e, b) < dist2(e, a) ? b : a), relays[0]);
       const n = norm(player.x - r.x, player.y - r.y);
       tx = r.x + n.x * 48;
       ty = r.y + n.y * 48;
     }
-    if (e.type === "chaser") {
+    if (e.behavior === "guard-core") {
+      const targetDevice = relays.find((relay) => !relay.active) || core;
+      const n = norm(player.x - targetDevice.x, player.y - targetDevice.y);
+      tx = targetDevice.x + n.x * 58;
+      ty = targetDevice.y + n.y * 58;
+    }
+    if (["pursue", "leech", "explode"].includes(e.behavior)) {
       tx += Math.sin(e.wobble) * 32;
       ty += Math.cos(e.wobble * 0.8) * 32;
     }
@@ -862,7 +873,8 @@ function updateEnemies(dt) {
     e.vy = n.y * e.speed;
     moveActor(e, e.vx * dt, e.vy * dt);
     if (target === player && hit(e, player) && e.touch <= 0) {
-      hurtPlayer(e.type === "blocker" ? 16 : 10, e);
+      hurtPlayer(e.behavior === "guard-relay" || e.behavior === "guard-core" ? 16 : 10, e);
+      if (e.behavior === "leech") state.slowTimer = Math.max(state.slowTimer, 2.2);
       e.touch = 0.7;
     } else if (target === shuttle && hit(e, shuttle) && e.touch <= 0) {
       hurtShuttle(e.type === "blocker" ? 18 : 11);
@@ -947,6 +959,24 @@ function damageEnemy(e, dmg, byEcho) {
     state.lastKill = state.elapsed;
     burst(e.x, e.y, "#ff4c70", 18, 200);
     monsterRemains(e);
+    if (e.behavior === "explode")
+      explosions.push({ x: e.x, y: e.y, r: 82, timer: 0.65, exploded: false });
+  }
+}
+function updateExplosions(dt) {
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    const blast = explosions[i];
+    blast.timer -= dt;
+    if (blast.timer <= 0 && !blast.exploded) {
+      blast.exploded = true;
+      if (Math.hypot(player.x - blast.x, player.y - blast.y) < blast.r) hurtPlayer(18, blast);
+      for (const enemy of enemies)
+        if (enemy.alive && Math.hypot(enemy.x - blast.x, enemy.y - blast.y) < blast.r)
+          damageEnemy(enemy, 28, false);
+      burst(blast.x, blast.y, "#ff9a45", 34, 260);
+      shake = 9;
+    }
+    if (blast.timer < -0.2) explosions.splice(i, 1);
   }
 }
 function monsterRemains(e) {
@@ -1025,6 +1055,9 @@ function buildArena() {
     };
 }
 function updateObjectives(dt) {
+  const guardSupport = enemies.some((enemy) => enemy.alive && enemy.behavior === "guard-core")
+    ? 1.45
+    : 1;
   for (const s of switches) {
     if (state.elapsed - s.lastHit > 0.18)
       s.charge = Math.max(0, s.charge - 13 * diff.relayDecay * dt);
@@ -1038,7 +1071,10 @@ function updateObjectives(dt) {
     }
     const was = r.active;
     if (state.elapsed - r.lastHit > 0.18)
-      r.charge = Math.max(0, r.charge - stage.objective.relayDecay * diff.relayDecay * dt);
+      r.charge = Math.max(
+        0,
+        r.charge - stage.objective.relayDecay * diff.relayDecay * guardSupport * dt
+      );
     r.active = r.charge >= stage.objective.relayChargeMax;
     if (r.active && !was) {
       state.score += 250;
@@ -1119,6 +1155,7 @@ function resetLoopWorld() {
   player = makePlayer();
   bullets = [];
   particles = [];
+  explosions = [];
   enemies = [];
   const o = makeObjectives();
   core = o.c;
@@ -1431,6 +1468,7 @@ function render() {
   if (player) {
     renderObjectives();
     renderWarnings();
+    renderExplosions();
     renderParticles();
     renderBullets();
     renderEnemies();
@@ -1660,13 +1698,62 @@ function renderEnemies() {
       const target = e.targetShuttle && shuttle?.hp > 0 ? shuttle : player;
       ctx.rotate(Math.atan2(target.y - e.y, target.x - e.x));
       ctx.scale(1 - e.hurt * 0.16, 1 + e.hurt * 0.2);
-      if (e.type === "chaser") renderRiftHound(e, color, pulse);
-      else if (e.type === "shooter") renderSporeCaster(e, color, pulse);
-      else renderAnchorBrute(e, color, pulse);
+      if (monster.visual === "hound") renderRiftHound(e, color, pulse);
+      else if (monster.visual === "caster") renderSporeCaster(e, color, pulse);
+      else if (monster.visual === "brute") renderAnchorBrute(e, color, pulse);
+      else renderSpecialMonster(e, monster, pulse);
       ctx.restore();
       ctx.fillStyle = "#ff9aaa";
       ctx.fillRect(e.x - e.r, e.y - e.r - 8, (e.r * 2 * e.hp) / e.maxHp, 3);
     }
+}
+function renderSpecialMonster(e, monster, pulse) {
+  ctx.fillStyle = e.hitFlash > 0 ? "#fff" : monster.color;
+  if (monster.visual === "leech") {
+    ctx.beginPath();
+    ctx.ellipse(0, 0, e.r * 1.4 * pulse, e.r * 0.55, 0, 0, 6.283);
+    ctx.fill();
+    ctx.strokeStyle = monster.accent;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(-5, side * 4);
+      ctx.lineTo(-19, side * 12);
+      ctx.stroke();
+    }
+  } else if (monster.visual === "guard") {
+    poly(0, 0, e.r * pulse, 6, Math.PI / 6);
+    ctx.fill();
+    ctx.strokeStyle = monster.accent;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r + 7, -1.2, 1.2);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r * pulse, 0, 6.283);
+    ctx.fill();
+    ctx.strokeStyle = monster.accent;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r * 0.55, 0, 6.283);
+    ctx.stroke();
+  }
+  ctx.fillStyle = monster.accent;
+  ctx.beginPath();
+  ctx.arc(6, 0, 3, 0, 6.283);
+  ctx.fill();
+}
+function renderExplosions() {
+  for (const blast of explosions) {
+    const warning = clamp(blast.timer / 0.65, 0, 1);
+    ctx.fillStyle = `rgba(255,92,45,${0.08 + (1 - warning) * 0.18})`;
+    ctx.strokeStyle = blast.timer > 0 ? "#ffb14a" : "#fff0c4";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(blast.x, blast.y, blast.r * (1 - warning * 0.18), 0, 6.283);
+    ctx.fill();
+    ctx.stroke();
+  }
 }
 function renderRiftHound(e, color, pulse) {
   ctx.strokeStyle = color;
@@ -1825,6 +1912,7 @@ function update(dt) {
   updateEnemies(dt);
   updateBullets(dt);
   updateObjectives(dt);
+  updateExplosions(dt);
   updateRoomProgression();
   updateParticles(dt);
   updateHUD();

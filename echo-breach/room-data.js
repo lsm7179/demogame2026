@@ -20,7 +20,7 @@
             { x: 820, y: 45, w: 18, h: 220 },
             { x: 820, y: 455, w: 18, h: 220 },
           ],
-          waves: ["chaser", "chaser", "shooter", "chaser"],
+          waves: ["chaser", "leech", "shooter", "chaser"],
           spawnPoints: [
             { x: 520, y: 150 },
             { x: 620, y: 570 },
@@ -38,7 +38,7 @@
             { x: 300, y: 230, w: 420, h: 18 },
             { x: 560, y: 470, w: 420, h: 18 },
           ],
-          waves: ["blocker", "shooter", "chaser", "shooter", "chaser"],
+          waves: ["blocker", "exploder", "chaser", "shooter", "exploder"],
           spawnPoints: [
             { x: 430, y: 120 },
             { x: 790, y: 350 },
@@ -60,7 +60,7 @@
             { x: 850, y: 45, w: 18, h: 185 },
             { x: 850, y: 350, w: 18, h: 140 },
           ],
-          waves: ["blocker", "shooter", "chaser", "blocker"],
+          waves: ["core-guard", "shooter", "chaser", "blocker"],
           spawnPoints: [
             { x: 95, y: 90 },
             { x: 1180, y: 90 },
