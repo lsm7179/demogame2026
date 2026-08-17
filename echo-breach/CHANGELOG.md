@@ -16,6 +16,12 @@ All notable ECHO BREACH changes are recorded here. The project follows Semantic 
 
 - Kept Echo world coordinates, monster combat stats, automatic-fire cadence, and save schema v2.
 
+### Fixed
+
+- Prevented players and monsters from sticking to vertical or horizontal walls.
+- Prevented high-speed dashes from tunneling through closed walls.
+- Safely expel actors caught inside the Stage 2 gate when it closes.
+
 ## [0.2.0] - 2026-08-17
 
 ### Changed

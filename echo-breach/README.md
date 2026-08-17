@@ -76,6 +76,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `game-balance.js`: 자동 사격과 무기 핵심 밸런스 상수
 - `monster-data.js`: 시간 오염 몬스터 역할과 기존 전투 수치
 - `room-data.js`: Stage 1~3 방, 벽, 통로와 안전한 생성 지점
+- `collision-core.js`: 원형 액터의 축별 벽 슬라이딩과 고속 이동 충돌
 - `echo-core.js`: 브라우저와 Node 테스트가 공유하는 순수 Echo 시간 로직
 - `version.json`: 공개 게임 버전과 저장 스키마 버전
 - `manifest.webmanifest`: 설치·출시 메타데이터

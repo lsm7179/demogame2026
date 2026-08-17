@@ -492,15 +492,15 @@ function poly(x, y, r, n, rot = 0) {
   }
   ctx.closePath();
 }
-function constrain(o, oldX) {
-  o.x = clamp(o.x, 42, BASE.W - 42);
-  o.y = clamp(o.y, 55, BASE.H - 42);
-  for (const w of walls) {
-    if (w.open) continue;
-    if (o.x + o.r > w.x && o.x - o.r < w.x + w.w && o.y + o.r > w.y && o.y - o.r < w.y + w.h) {
-      o.x = oldX < w.x ? w.x - o.r : w.x + w.w + o.r;
-    }
-  }
+function moveActor(o, dx, dy) {
+  const collision = CollisionCore.moveCircle(o, dx, dy, walls, {
+    minX: 42,
+    maxX: BASE.W - 42,
+    minY: 55,
+    maxY: BASE.H - 42,
+  });
+  if (collision.blockedX) o.vx = 0;
+  if (collision.blockedY) o.vy = 0;
 }
 function randomEdge() {
   const points = RoomData[stage.id]?.spawnPoints;
@@ -545,17 +545,17 @@ function updatePlayer(dt) {
   const blend = 1 - Math.exp(-BASE.ACCEL * dt);
   player.vx = lerp(player.vx, n.x * stats.speed, blend);
   player.vy = lerp(player.vy, n.y * stats.speed, blend);
-  const ox = player.x;
+  let moveX, moveY;
   if (player.dashLeft > 0) {
     player.dashLeft -= dt;
-    player.x += player.dashX * BASE.DASH_SPEED * dt;
-    player.y += player.dashY * BASE.DASH_SPEED * dt;
+    moveX = player.dashX * BASE.DASH_SPEED * dt;
+    moveY = player.dashY * BASE.DASH_SPEED * dt;
     trail(player, "#ffb45d");
   } else {
-    player.x += player.vx * dt;
-    player.y += player.vy * dt;
+    moveX = player.vx * dt;
+    moveY = player.vy * dt;
   }
-  constrain(player, ox);
+  moveActor(player, moveX, moveY);
   player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
   player.fireCd -= dt;
   player.invuln -= dt;
@@ -856,11 +856,10 @@ function updateEnemies(dt) {
       tx += Math.sin(e.wobble) * 32;
       ty += Math.cos(e.wobble * 0.8) * 32;
     }
-    const n = norm(tx - e.x, ty - e.y),
-      ox = e.x;
-    e.x += n.x * e.speed * dt;
-    e.y += n.y * e.speed * dt;
-    constrain(e, ox);
+    const n = norm(tx - e.x, ty - e.y);
+    e.vx = n.x * e.speed;
+    e.vy = n.y * e.speed;
+    moveActor(e, e.vx * dt, e.vy * dt);
     if (target === player && hit(e, player) && e.touch <= 0) {
       hurtPlayer(e.type === "blocker" ? 16 : 10, e);
       e.touch = 0.7;
