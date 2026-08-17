@@ -1298,17 +1298,32 @@ function anchorActive() {
   return !encounter || encounter.objective === "anchor";
 }
 function enterNextRoom() {
+  if (state.mode !== "playing") return;
+  const transition = RoomData.beginRoomTransition(state);
+  state.mode = transition.mode;
+  state.roomTransition = transition.roomTransition;
+  state.charging = false;
+  bullets = [];
+  shake = 6;
+}
+function finishRoomTransition() {
   const encounters = RoomData.awakening.encounters;
-  if (stage.number !== 1) return;
+  if (stage.number !== 1) {
+    state.mode = "playing";
+    return;
+  }
   for (const pickup of pickups) collectPickup(pickup);
   const advanced = RoomData.advanceRoomState(
     { ...state, recordings, echoes, bullets, enemies, particles, pickups: [] },
     encounters.length
   );
-  if (!advanced) return;
+  if (!advanced) {
+    state.mode = "playing";
+    return;
+  }
   state.roomIndex = advanced.roomIndex;
   state.roomCleared = advanced.roomCleared;
-  state.roomTransition = 0.55;
+  state.roomTransition = 0;
   state.loop = advanced.loop;
   recordings = advanced.recordings;
   echoes = advanced.echoes;
@@ -1316,6 +1331,7 @@ function enterNextRoom() {
   particles = advanced.particles;
   enemies = advanced.enemies;
   warnings = [];
+  state.mode = "playing";
   resetLoopWorld();
   flash = 0.12;
 }
@@ -1602,6 +1618,15 @@ function render() {
     renderCursor();
   }
   ctx.restore();
+  if (state.mode === "roomTransition") {
+    ctx.fillStyle = `rgba(3,8,18,${clamp(1 - state.roomTransition / 0.4, 0, 0.92)})`;
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+    ctx.fillStyle = "rgba(175,255,248,.85)";
+    ctx.font = "700 18px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("BREACHING NEXT ROOM", innerWidth / 2, innerHeight / 2);
+    ctx.textAlign = "start";
+  }
   if (state.overloadText > 0) {
     ctx.fillStyle = `rgba(190,255,249,${clamp(state.overloadText * 1.4, 0, 1)})`;
     ctx.font = "700 24px monospace";
@@ -2063,6 +2088,13 @@ function renderCursor() {
 
 // ── 업데이트 루프와 초기화 ─────────────────────────────────────────────────
 function update(dt) {
+  if (state.mode === "roomTransition") {
+    const transition = RoomData.tickRoomTransition(state, dt);
+    state.roomTransition = transition.state.roomTransition;
+    updateParticles(dt);
+    if (transition.ready) finishRoomTransition();
+    return;
+  }
   if (state.mode === "loopTransition") {
     transitionTimer -= dt;
     if (transitionTimer <= 0) nextLoop();

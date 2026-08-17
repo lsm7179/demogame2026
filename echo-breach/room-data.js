@@ -147,6 +147,15 @@
       pickups: [],
     };
   }
+  function beginRoomTransition(state, duration = 0.4) {
+    if (state.mode !== "playing") return state;
+    return { ...state, mode: "roomTransition", roomTransition: duration };
+  }
+  function tickRoomTransition(state, dt) {
+    if (state.mode !== "roomTransition") return { state, ready: false };
+    const roomTransition = Math.max(0, state.roomTransition - dt);
+    return { state: { ...state, roomTransition }, ready: roomTransition === 0 };
+  }
 
   const frozenLayouts = Object.fromEntries(
     Object.entries(layouts).map(([id, layout]) => [
@@ -172,5 +181,10 @@
       }),
     ])
   );
-  return Object.freeze({ ...frozenLayouts, advanceRoomState });
+  return Object.freeze({
+    ...frozenLayouts,
+    advanceRoomState,
+    beginRoomTransition,
+    tickRoomTransition,
+  });
 });

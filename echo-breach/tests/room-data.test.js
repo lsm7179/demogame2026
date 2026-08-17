@@ -102,3 +102,12 @@ test("room transition clears transient combat and Echo objects", () => {
   for (const key of ["recordings", "echoes", "bullets", "enemies", "particles", "pickups"])
     assert.deepEqual(next[key], []);
 });
+
+test("room loading waits in an explicit transition state before advancing", () => {
+  const started = layouts.beginRoomTransition({ mode: "playing", roomIndex: 0 });
+  assert.equal(started.mode, "roomTransition");
+  assert.equal(layouts.tickRoomTransition(started, 0.2).ready, false);
+  const finished = layouts.tickRoomTransition(started, 0.4);
+  assert.equal(finished.ready, true);
+  assert.equal(finished.state.roomTransition, 0);
+});
