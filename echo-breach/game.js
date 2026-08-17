@@ -1150,14 +1150,16 @@ function updateObjectives(dt) {
   state.shieldTimer = Math.max(0, state.shieldTimer - dt);
 }
 function damageCore(dmg, byEcho) {
-  core.hp = Math.max(0, core.hp - dmg);
-  state.coreDamage += dmg;
+  const applied =
+    dmg * (state.overdriveTimer > 0 ? GameBalance.overdrive.anchorDamageMultiplier : 1);
+  core.hp = Math.max(0, core.hp - applied);
+  state.coreDamage += applied;
   state.totalCoreHits++;
   if (byEcho) {
     state.echoCoreHits++;
-    state.echoDamage += dmg;
+    state.echoDamage += applied;
   }
-  state.score += Math.round(dmg * 5);
+  state.score += Math.round(applied * 5);
   shake = 3;
   if (core.hp <= 0) endStage(true);
 }
@@ -1689,6 +1691,13 @@ function renderActor(o, isEcho) {
   ctx.shadowColor = isEcho ? "#45f5e9" : "#ffb45d";
   const suit = isEcho ? "#45f5e9" : hurt > 0.45 ? "#ff637b" : "#f5f8ff";
   const accent = isEcho ? "#77fff5" : "#ffab55";
+  if (state.overdriveTimer > 0) {
+    ctx.strokeStyle = isEcho ? "rgba(133,255,246,.5)" : "rgba(255,224,112,.75)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, o.r + 7 + Math.sin(state.elapsed * 12) * 2, 0, 6.283);
+    ctx.stroke();
+  }
   const stride = Math.sin(o.animTime || 0) * 5 * (o.motion || 0);
   const bob = Math.abs(Math.sin(o.animTime || 0)) * 1.2 * (o.motion || 0);
   const recoil = (o.recoil || 0) * 5;

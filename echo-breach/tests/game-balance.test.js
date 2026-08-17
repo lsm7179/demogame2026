@@ -19,3 +19,15 @@ test("Split Shot fires two projectiles at 70 percent damage and plus-minus five 
 test("Charge Lance automatically releases at the full-charge duration", () => {
   assert.equal(GameBalance.chargeLance.fullChargeSeconds, 1.25);
 });
+
+test("Temporal Overdrive uses the configured eight-second combat modifiers", () => {
+  assert.deepEqual(GameBalance.overdrive, {
+    maxGauge: 100,
+    duration: 8,
+    playerFireRateMultiplier: 1.25,
+    echoDamageMultiplier: 1.3,
+    anchorDamageMultiplier: 1.5,
+    pickupLife: 12,
+    pickupRadius: 135,
+  });
+});
