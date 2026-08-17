@@ -260,6 +260,8 @@ const ui = {
   echoes: $("echo-value"),
   hp: $("hp-bar"),
   dash: $("dash-bar"),
+  overdrive: $("overdrive-bar"),
+  overdriveLabel: $("overdrive-label"),
   core: $("core-bar"),
   score: $("score-value"),
   objective: $("objective"),
@@ -330,6 +332,13 @@ function freshState() {
     roomCleared: false,
     roomTransition: 0,
     slowTimer: 0,
+    overdriveGauge: 0,
+    overdriveTimer: 0,
+    lastPlayerCoreHit: -9,
+    lastEchoCoreHit: -9,
+    lastOverload: -9,
+    overloads: 0,
+    anchorPhase: "armored",
     history: [],
   };
 }
@@ -623,14 +632,19 @@ function makeShotProfile(angle, charge = 0) {
   return p;
 }
 function fireWeapon(owner, isEcho, profile, record = true) {
-  owner.fireCd = stats.fireRate;
+  owner.fireCd =
+    stats.fireRate /
+    (state.overdriveTimer > 0 ? GameBalance.overdrive.playerFireRateMultiplier : 1);
   owner.recoil = 1;
   for (let i = 0; i < profile.count; i++) {
     const off = (i - (profile.count - 1) / 2) * profile.spread,
       a = profile.a + off,
       c = Math.cos(a),
       s = Math.sin(a),
-      ratio = isEcho ? stats.echoRatio : 1;
+      ratio = isEcho
+        ? stats.echoRatio *
+          (state.overdriveTimer > 0 ? GameBalance.overdrive.echoDamageMultiplier : 1)
+        : 1;
     bullets.push({
       x: owner.x + c * 22,
       y: owner.y + s * 22,
@@ -959,8 +973,49 @@ function damageEnemy(e, dmg, byEcho) {
     state.lastKill = state.elapsed;
     burst(e.x, e.y, "#ff4c70", 18, 200);
     monsterRemains(e);
+    dropShard(e);
     if (e.behavior === "explode")
       explosions.push({ x: e.x, y: e.y, r: 82, timer: 0.65, exploded: false });
+  }
+}
+function dropShard(enemy) {
+  const monster = MonsterData[enemy.type] || MonsterData.chaser;
+  pickups.push({
+    x: enemy.x,
+    y: enemy.y,
+    value: monster.reward,
+    life: GameBalance.overdrive.pickupLife,
+    phase: Math.random() * 6.283,
+  });
+}
+function collectPickup(pickup) {
+  const next = TemporalCore.collectShard(state, pickup.value, GameBalance.overdrive);
+  const activated = state.overdriveTimer <= 0 && next.overdriveTimer > 0;
+  state.overdriveGauge = next.overdriveGauge;
+  state.overdriveTimer = next.overdriveTimer;
+  state.score += pickup.value * 15;
+  burst(pickup.x, pickup.y, "#72fff0", 9, 120);
+  if (activated) {
+    tone("sawtooth", 210, 0.6, 0.08, 760);
+    shake = 7;
+  }
+}
+function updatePickups(dt) {
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    const pickup = pickups[i];
+    pickup.life -= dt;
+    pickup.phase += dt * 5;
+    const d = Math.hypot(player.x - pickup.x, player.y - pickup.y);
+    if (d < GameBalance.overdrive.pickupRadius) {
+      const n = norm(player.x - pickup.x, player.y - pickup.y);
+      const speed = 90 + (GameBalance.overdrive.pickupRadius - d) * 4;
+      pickup.x += n.x * speed * dt;
+      pickup.y += n.y * speed * dt;
+    }
+    if (d < player.r + 9) {
+      collectPickup(pickup);
+      pickups.splice(i, 1);
+    } else if (pickup.life <= 0) pickups.splice(i, 1);
   }
 }
 function updateExplosions(dt) {
@@ -1155,6 +1210,7 @@ function resetLoopWorld() {
   player = makePlayer();
   bullets = [];
   particles = [];
+  pickups = [];
   explosions = [];
   enemies = [];
   const o = makeObjectives();
@@ -1183,6 +1239,7 @@ function anchorActive() {
 function enterNextRoom() {
   const encounters = RoomData.awakening.encounters;
   if (stage.number !== 1) return;
+  for (const pickup of pickups) collectPickup(pickup);
   const advanced = RoomData.advanceRoomState(
     { ...state, recordings, echoes, bullets, enemies, particles, pickups: [] },
     encounters.length
@@ -1405,6 +1462,11 @@ function updateHUD() {
   ui.echoes.textContent = echoes.length;
   ui.hp.style.width = `${100 * clamp(player.hp / stats.maxHp, 0, 1)}%`;
   ui.dash.style.width = `${100 * (player.dashStock / stats.dashCharges)}%`;
+  ui.overdrive.style.width = `${100 * clamp(state.overdriveGauge / GameBalance.overdrive.maxGauge, 0, 1)}%`;
+  ui.overdriveLabel.textContent =
+    state.overdriveTimer > 0
+      ? `OVERDRIVE ${state.overdriveTimer.toFixed(1)}s`
+      : "TEMPORAL OVERDRIVE";
   ui.core.style.width = `${anchorActive() ? (100 * core.hp) / core.maxHp : 0}%`;
   ui.score.textContent = Math.round(state.score);
   ui.shuttleHud.classList.toggle("hidden", !shuttle);
@@ -1469,6 +1531,7 @@ function render() {
     renderObjectives();
     renderWarnings();
     renderExplosions();
+    renderPickups();
     renderParticles();
     renderBullets();
     renderEnemies();
@@ -1755,6 +1818,19 @@ function renderExplosions() {
     ctx.stroke();
   }
 }
+function renderPickups() {
+  for (const pickup of pickups) {
+    ctx.save();
+    ctx.translate(pickup.x, pickup.y);
+    ctx.rotate(pickup.phase);
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = "#45f5e9";
+    ctx.fillStyle = "#a9fff7";
+    poly(0, 0, 6 + Math.sin(pickup.phase) * 1.5, 4, Math.PI / 4);
+    ctx.fill();
+    ctx.restore();
+  }
+}
 function renderRiftHound(e, color, pulse) {
   ctx.strokeStyle = color;
   ctx.lineWidth = 4;
@@ -1900,6 +1976,7 @@ function update(dt) {
     return;
   }
   state.elapsed += dt;
+  state.overdriveTimer = TemporalCore.tickOverdrive(state, dt).overdriveTimer;
   updatePlayer(dt);
   updateEchoes(dt);
   for (let i = warnings.length - 1; i >= 0; i--) {
@@ -1913,6 +1990,7 @@ function update(dt) {
   updateBullets(dt);
   updateObjectives(dt);
   updateExplosions(dt);
+  updatePickups(dt);
   updateRoomProgression();
   updateParticles(dt);
   updateHUD();

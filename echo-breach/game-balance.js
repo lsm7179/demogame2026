@@ -15,5 +15,20 @@
     chargeLance: Object.freeze({
       fullChargeSeconds: 1.25,
     }),
+    overdrive: Object.freeze({
+      maxGauge: 100,
+      duration: 8,
+      playerFireRateMultiplier: 1.25,
+      echoDamageMultiplier: 1.3,
+      anchorDamageMultiplier: 1.5,
+      pickupLife: 12,
+      pickupRadius: 135,
+    }),
+    overload: Object.freeze({ window: 0.25, cooldown: 1.2, bonusDamage: 28, overdriveBonus: 1.5 }),
+    anchorPhases: Object.freeze([
+      Object.freeze({ threshold: 0.75, id: "cracked" }),
+      Object.freeze({ threshold: 0.5, id: "unstable" }),
+      Object.freeze({ threshold: 0.25, id: "critical" }),
+    ]),
   });
 });
