@@ -70,11 +70,12 @@
       const devices = context.switches.filter((item) => item.syncGroup === gate.syncGroup);
       const active = devices.filter((item) => item.charge >= (item.threshold || 60));
       const sources = new Set(active.flatMap((item) => item.hitSources || []));
+      const echoSources = [...sources].filter((source) => source.startsWith("echo:"));
       complete ||=
         entered &&
         active.length >= (gate.requiredDevices || devices.length) &&
         sources.has("player") &&
-        sources.has("echo");
+        echoSources.length >= (gate.requiredEchoes || 1);
     }
     return { active: record.active, entered, complete, elapsed };
   }
@@ -104,8 +105,11 @@
     }
     if (zone.objective === "survive")
       return `오염 기록 생존 · ${Math.max(0, (gate.surviveSeconds || 10) - record.elapsed).toFixed(1)}초`;
-    if (zone.objective === "synchronize")
-      return `수렴 장치 동시 활성화 · Echo ${gate.requiredEchoes || 1}+`;
+    if (zone.objective === "synchronize") {
+      const devices = (context.switches || []).filter((item) => item.syncGroup === gate.syncGroup);
+      const active = devices.filter((item) => item.charge >= (item.threshold || 60)).length;
+      return `수렴 장치 ${active}/${gate.requiredDevices || devices.length} · Echo ${gate.requiredEchoes || 1} 필요`;
+    }
     if (zone.objective === "final-boss") return "PRIME WEAVER 처치";
     return "릴레이 동기화 후 Anchor 파괴";
   }

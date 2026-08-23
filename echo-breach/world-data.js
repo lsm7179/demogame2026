@@ -511,6 +511,8 @@
         syncGroup: "prime-convergence",
         requiredDevices: 3,
         requiredEchoes: 1,
+        unlockLabel: "수렴 완료 · PRIME 봉쇄 해제",
+        rewardScore: 900,
       },
     ],
     hazards: [

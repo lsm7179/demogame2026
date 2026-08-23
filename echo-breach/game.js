@@ -932,6 +932,7 @@ function fireWeapon(owner, isEcho, profile, record = true) {
       life: p.range / Math.max(1, p.speed),
       team: "player",
       echo: isEcho,
+      timelineSource: isEcho ? `echo:${owner.i}` : "player",
       damage,
       pierce: p.pierce,
       coreDamageMultiplier: p.coreDamageMultiplier,
@@ -1392,7 +1393,7 @@ function updateBullets(dt) {
             b.hitIds?.push(s);
             s.charge = Math.min(100, s.charge + (s.gain || 16));
             s.lastHit = state.elapsed;
-            const source = b.echo ? "echo" : "player";
+            const source = b.timelineSource || (b.echo ? "echo:legacy" : "player");
             s.hitSources ||= [];
             if (!s.hitSources.includes(source)) s.hitSources.push(source);
             const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "relay");
@@ -2411,6 +2412,7 @@ function updateHUD() {
           difficultyId: diff.id,
           shuttle,
           escortRules: world.escortRules,
+          switches,
         })
       : UiCore.objectiveAlert({
           zoneName: zone?.name,
@@ -2677,7 +2679,9 @@ function renderObjectives() {
   if (!anchorActive()) return;
   const objective = activeObjective();
   for (const s of switches) {
-    ctx.strokeStyle = "#45f5e9";
+    const playerLinked = s.hitSources?.includes("player");
+    const echoLinked = s.hitSources?.some((source) => source.startsWith("echo:"));
+    ctx.strokeStyle = playerLinked && echoLinked ? "#fff1c7" : echoLinked ? "#45f5e9" : "#d3a56f";
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.arc(s.x, s.y, s.r + 7, -Math.PI / 2, -Math.PI / 2 + (s.charge / 100) * 6.283);
