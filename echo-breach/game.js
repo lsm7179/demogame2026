@@ -314,6 +314,47 @@ let raf = 0,
   camera = { x: 0, y: 0 };
 const keys = Object.create(null),
   mouse = { x: 640, y: 360, sx: 640, sy: 360, inside: false };
+const PLAYTEST_STORAGE_KEY = "echoBreachPlaytests";
+const playtestEnabled = ["127.0.0.1", "localhost"].includes(location.hostname);
+
+function readPlaytestRuns() {
+  if (!playtestEnabled) return [];
+  try {
+    return PlaytestCore.normalizeRuns(
+      JSON.parse(localStorage.getItem(PLAYTEST_STORAGE_KEY) || "[]")
+    );
+  } catch {
+    return [];
+  }
+}
+
+function writePlaytestRun(run) {
+  if (!playtestEnabled || !run) return;
+  try {
+    localStorage.setItem(
+      PLAYTEST_STORAGE_KEY,
+      JSON.stringify(PlaytestCore.normalizeRuns([...readPlaytestRuns(), run]))
+    );
+  } catch {}
+}
+
+function writeLatestPlaytestReward(itemId) {
+  if (!playtestEnabled) return;
+  const runs = readPlaytestRuns();
+  if (!runs.length) return;
+  const latest = runs.at(-1);
+  latest.rewardChoices = [...(latest.rewardChoices || []), itemId];
+  try {
+    localStorage.setItem(PLAYTEST_STORAGE_KEY, JSON.stringify(runs));
+  } catch {}
+}
+
+function damageSourceId(from) {
+  if (from?.sourceType) return from.sourceType;
+  if (from?.type) return from.type;
+  if (from?.exploded !== undefined) return "rift-explosion";
+  return "unknown";
+}
 function freshState() {
   return {
     mode: "title",
@@ -348,6 +389,11 @@ function freshState() {
     lastEchoCoreHit: -9,
     lastOverload: -9,
     overloads: 0,
+    playtestRun: null,
+    playtestSample: 0,
+    playtestLastX: 0,
+    playtestLastY: 0,
+    deathCause: null,
     anchorPhase: "armored",
     overloadText: 0,
     collapsing: false,
@@ -695,6 +741,10 @@ function fireWeapon(owner, isEcho, profile, record = true) {
     p.fireInterval /
     (state.overdriveTimer > 0 ? GameBalance.overdrive.playerFireRateMultiplier : 1);
   owner.recoil = 1;
+  if (state.playtestRun) {
+    const field = isEcho ? "echoShots" : "playerShots";
+    state.playtestRun = { ...state.playtestRun, [field]: state.playtestRun[field] + 1 };
+  }
   for (let i = 0; i < p.count; i++) {
     const off = (i - (p.count - 1) / 2) * p.spread,
       a = p.a + off,
@@ -793,6 +843,12 @@ function hurtPlayer(raw, from) {
     return;
   }
   player.hp -= hpDamage;
+  if (state.playtestRun)
+    state.playtestRun = PlaytestCore.addDamageSource(
+      state.playtestRun,
+      damageSourceId(from),
+      hpDamage
+    );
   state.damageTaken += hpDamage;
   state.noHit = false;
   player.invuln = 0.45;
@@ -802,7 +858,10 @@ function hurtPlayer(raw, from) {
   hitStop = 0.04;
   sfx.hurt();
   burst(player.x, player.y, "#ff4f67", 18, 210);
-  if (player.hp <= 0) endLoop("death");
+  if (player.hp <= 0) {
+    state.deathCause = damageSourceId(from);
+    endLoop("death");
+  }
 }
 
 // ── Echo 기록과 재생 ───────────────────────────────────────────────────────
@@ -957,6 +1016,7 @@ function enemyShoot(e, target) {
     r: 6,
     life: 4,
     team: "enemy",
+    sourceType: e.type,
     damage: 12,
     targetShuttle: e.targetShuttle,
   });
@@ -1499,6 +1559,16 @@ function startStage() {
   recordings = [];
   core = { hp: stage.difficulty.coreHp };
   resetLoopWorld();
+  state.playtestRun = playtestEnabled
+    ? PlaytestCore.createRun({
+        stageId: stage.id,
+        difficulty: diff.id,
+        loadout: save.loadout,
+        upgrades: save.upgrades,
+      })
+    : null;
+  state.playtestLastX = player.x;
+  state.playtestLastY = player.y;
   hideAll();
   mouse.inside = canvas.matches(":hover");
   ui.hud.classList.remove("hidden");
@@ -1581,6 +1651,26 @@ function endStage(win) {
     final = Math.round((state.score + rank.value) * diff.scoreMult);
   state.finalRank = rank;
   state.finalScore = final;
+  if (state.playtestRun) {
+    writePlaytestRun(
+      PlaytestCore.finishRun(state.playtestRun, {
+        win,
+        activeSeconds: (state.loop - 1) * diff.loopTime + state.elapsed,
+        loops: state.loop,
+        echoes: recordings.length,
+        kills: state.kills,
+        damageTaken: state.damageTaken,
+        score: final,
+        coreDamage: state.coreDamage,
+        totalCoreHits: state.totalCoreHits,
+        echoCoreHits: state.echoCoreHits,
+        bestCombo: state.bestCombo,
+        overloads: state.overloads,
+        deathCause: state.deathCause,
+      })
+    );
+    state.playtestRun = null;
+  }
   hideAll();
   screens.result.classList.remove("hidden");
   $("result-kicker").textContent = win ? "ANCHOR COLLAPSED // TIME RESTORED" : "TEMPORAL LOCKDOWN";
@@ -1788,6 +1878,7 @@ function selectEquipment(itemId) {
   equipmentSelectionLocked = true;
   save.loadout = claim.loadout;
   save.equipmentOwned = claim.ownedItems;
+  writeLatestPlaytestReward(itemId);
   stats = buildStats();
   if (player) {
     player.hp = Math.max(1, Math.min(stats.maxHp, player.hp));
@@ -2588,6 +2679,28 @@ function renderWorldGuidance() {
 }
 
 // ── 업데이트 루프와 초기화 ─────────────────────────────────────────────────
+function updatePlaytestStats(dt) {
+  if (!state.playtestRun || !player) return;
+  state.playtestSample += dt;
+  if (state.playtestSample < 0.25) return;
+  const sampleTime = state.playtestSample;
+  const distance = Math.min(
+    80,
+    Math.hypot(player.x - state.playtestLastX, player.y - state.playtestLastY)
+  );
+  const world = activeWorld();
+  const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
+  state.playtestRun = PlaytestCore.addSample(state.playtestRun, {
+    dt: sampleTime,
+    distance,
+    speed: distance / sampleTime,
+    zoneId: zone?.id || currentEncounter()?.id || "unknown",
+  });
+  state.playtestSample = 0;
+  state.playtestLastX = player.x;
+  state.playtestLastY = player.y;
+}
+
 function update(dt) {
   if (state.mode === "roomTransition") {
     const transition = RoomData.tickRoomTransition(state, dt);
@@ -2626,6 +2739,7 @@ function update(dt) {
   updatePickups(dt);
   updateRoomProgression();
   updateParticles(dt);
+  updatePlaytestStats(dt);
   updateHUD();
   if (state.elapsed >= diff.loopTime) endLoop("time");
 }
@@ -2733,5 +2847,33 @@ function openLocalUiPreview() {
   if (preview === "upgrade") showUpgrades();
 }
 
+function exposeLocalQaTools() {
+  if (!playtestEnabled) return;
+  globalThis.EchoBreachQA = Object.freeze({
+    exportPlaytests: () => JSON.parse(JSON.stringify(readPlaytestRuns())),
+    summarizePlaytests: () => PlaytestCore.summarizeRuns(readPlaytestRuns()),
+  });
+}
+
+function showLocalPlaytestReport() {
+  if (!playtestEnabled || new URLSearchParams(location.search).get("playtest-report") !== "1")
+    return;
+  hideAll();
+  const panel = document.createElement("section");
+  panel.className = "overlay";
+  panel.innerHTML = `<div class="panel wide"><p class="eyebrow">로컬 QA</p><h2>Stage 1 플레이 기록</h2><pre id="playtest-report-output"></pre></div>`;
+  document.querySelector("main").append(panel);
+  $("playtest-report-output").textContent = JSON.stringify(
+    {
+      summary: PlaytestCore.summarizeRuns(readPlaytestRuns()),
+      runs: readPlaytestRuns(),
+    },
+    null,
+    2
+  );
+}
+
 init();
 openLocalUiPreview();
+exposeLocalQaTools();
+showLocalPlaytestReport();

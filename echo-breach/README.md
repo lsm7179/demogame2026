@@ -99,6 +99,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `echo-core.js`: 브라우저와 Node 테스트가 공유하는 순수 Echo 시간 로직
 - `equipment-data.js`: 9개 장비, 희귀도, 보상 확률과 안전 제한값
 - `equipment-core.js`: loadout, 후보, 장착, 저장 마이그레이션과 발사 프로필 순수 함수
+- `playtest-core.js`: 로컬 QA 실행의 이동·전투·Echo 기여 통계와 요약 순수 함수
 - `version.json`: 공개 게임 버전과 저장 스키마 버전
 - `manifest.webmanifest`: 설치·출시 메타데이터
 - `README.md`: 실행 및 기능 안내
@@ -107,6 +108,8 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `tests/`: Node 내장 테스트 러너 기반 자동 회귀 테스트
 
 로컬 UI 검수는 정적 서버에서 `?ui-preview=equipment` 또는 `?ui-preview=upgrade`를 붙여 보상 화면을 직접 열 수 있습니다. 이 진입점은 `localhost`와 `127.0.0.1`에서만 동작합니다.
+
+로컬 Stage 1 플레이 기록은 출시 저장과 분리된 `echoBreachPlaytests` 키에 최근 50회까지 보관됩니다. `?playtest-report=1`은 로컬 서버에서만 요약과 원본 기록을 보여주며 배포 호스트에서는 활성화되지 않습니다.
 
 ## 알려진 제한사항과 다음 후보
 

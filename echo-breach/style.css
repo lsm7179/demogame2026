@@ -923,6 +923,18 @@ button.text-button {
 .upgrade-card.slot-relic .choice-icon {
   border-radius: 50%;
 }
+#playtest-report-output {
+  max-height: 520px;
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--edge);
+  background: var(--coal);
+  color: var(--bone);
+  font:
+    12px/1.55 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+}
 .equipment-card::before {
   content: "";
   position: absolute;
