@@ -133,6 +133,10 @@
           <p class="eyebrow">시스템 정지</p>
           <h2>일시정지</h2>
           <p id="pause-help">ESC 키로 전투 복귀</p>
+          <div class="audio-settings" aria-label="오디오 설정">
+            <label>음악 <input id="music-volume" type="range" min="0" max="100" /></label>
+            <label>효과음 <input id="effects-volume" type="range" min="0" max="100" /></label>
+          </div>
           <button id="abort-button" class="secondary">구역 선택으로</button>
         </div>
       </section>
@@ -212,6 +216,7 @@
     <script src="boss-core.js"></script>
     <script src="synergy-core.js"></script>
     <script src="corrupted-echo-core.js"></script>
+    <script src="audio-core.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

@@ -627,6 +627,25 @@ button:focus-visible {
 .compact {
   width: min(430px, 90vw);
 }
+.audio-settings {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 22px;
+  padding: 14px 0;
+  border-block: 1px solid #343b40;
+}
+.audio-settings label {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.audio-settings input {
+  width: 100%;
+  accent-color: var(--cyan);
+}
 .transition-copy {
   text-align: center;
   animation: glitch 0.15s steps(2) infinite;

@@ -313,6 +313,12 @@ let raf = 0,
   timeWarp = 0,
   transitionTimer = 0,
   audio = null,
+  sfxBus = null,
+  musicBus = null,
+  activeSfx = 0,
+  musicBeat = 0,
+  musicNextBeat = 0,
+  musicScene = "combat",
   muted = save.muted,
   view = { scale: 1, ox: 0, oy: 0 },
   camera = { x: 0, y: 0 };
@@ -449,6 +455,7 @@ function defaultSave() {
     loadout: EquipmentCore.createEmptyLoadout(),
     equipmentOwned: [],
     muted: false,
+    audioSettings: AudioCore.normalizeSettings(),
     hasCampaign: false,
   };
 }
@@ -457,6 +464,7 @@ function loadSave() {
     const x = JSON.parse(localStorage.getItem(SAVE_KEY));
     const migrated = EquipmentCore.migrateSave(x, defaultSave(), EquipmentData, SAVE_VERSION);
     migrated.upgrades = migrated.upgrades.filter((id) => UPGRADES.some((u) => u.id === id));
+    migrated.audioSettings = AudioCore.normalizeSettings(migrated.audioSettings);
     return migrated;
   } catch {
     return defaultSave();
@@ -464,6 +472,7 @@ function loadSave() {
 }
 function persist() {
   save.muted = muted;
+  save.audioSettings = AudioCore.normalizeSettings(save.audioSettings);
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(save));
   } catch {
@@ -523,11 +532,21 @@ function bindInputs() {
   });
 }
 function initAudio() {
-  if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audio) {
+    audio = new (window.AudioContext || window.webkitAudioContext)();
+    sfxBus = audio.createGain();
+    musicBus = audio.createGain();
+    sfxBus.connect(audio.destination);
+    musicBus.connect(audio.destination);
+  }
+  const settings = AudioCore.normalizeSettings(save.audioSettings);
+  sfxBus.gain.value = settings.effects;
+  musicBus.gain.value = settings.music;
   if (audio.state === "suspended") audio.resume();
 }
 function tone(type, freq, duration = 0.08, volume = 0.05, slide = 0) {
-  if (muted || !audio) return;
+  if (muted || !audio || activeSfx >= 18) return;
+  activeSfx++;
   const t = audio.currentTime,
     o = audio.createOscillator(),
     g = audio.createGain();
@@ -536,9 +555,46 @@ function tone(type, freq, duration = 0.08, volume = 0.05, slide = 0) {
   o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + duration);
   g.gain.setValueAtTime(volume, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-  o.connect(g).connect(audio.destination);
+  o.connect(g).connect(sfxBus);
+  o.onended = () => (activeSfx = Math.max(0, activeSfx - 1));
   o.start(t);
   o.stop(t + duration);
+}
+function musicTone(freq, duration, accent = false) {
+  if (muted || !audio || state.paused || state.mode !== "playing") return;
+  const t = audio.currentTime;
+  const oscillator = audio.createOscillator();
+  const gain = audio.createGain();
+  oscillator.type = accent ? "triangle" : "sine";
+  oscillator.frequency.setValueAtTime(freq, t);
+  gain.gain.setValueAtTime(accent ? 0.055 : 0.035, t);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+  oscillator.connect(gain).connect(musicBus);
+  oscillator.start(t);
+  oscillator.stop(t + duration);
+}
+function updateMusic() {
+  if (!audio || muted || state.paused || state.mode !== "playing") return;
+  const world = activeWorld();
+  const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
+  const zoneIndex = world && zone ? world.zones.indexOf(zone) : 0;
+  const nextScene = AudioCore.sceneFor({
+    bossAlive: enemies.some((enemy) => enemy.alive && enemy.boss),
+    zoneIndex,
+    zoneCount: world?.zones.length || 1,
+  });
+  if (nextScene !== musicScene) {
+    musicScene = nextScene;
+    musicBeat = 0;
+    musicNextBeat = audio.currentTime;
+  }
+  if (audio.currentTime < musicNextBeat) return;
+  const beatLength = AudioCore.beatDuration(musicScene);
+  const note = AudioCore.noteFor(musicScene, musicBeat);
+  musicTone(note, beatLength * 0.9, musicBeat % 4 === 0);
+  if (musicBeat % 2 === 0) musicTone(note * 2, beatLength * 0.28, true);
+  musicBeat++;
+  musicNextBeat = audio.currentTime + beatLength;
 }
 const sfx = {
   shot: () => tone("square", 210, 0.045, 0.03, -60),
@@ -560,6 +616,15 @@ function toggleMute() {
   muted = !muted;
   ui.muteTitle.textContent = `소리: ${muted ? "끔" : "켬"}`;
   ui.muteGame.textContent = muted ? "M×" : "M";
+  persist();
+}
+function updateAudioSettings() {
+  save.audioSettings = AudioCore.normalizeSettings({
+    music: Number($("music-volume").value) / 100,
+    effects: Number($("effects-volume").value) / 100,
+  });
+  if (musicBus) musicBus.gain.value = save.audioSettings.music;
+  if (sfxBus) sfxBus.gain.value = save.audioSettings.effects;
   persist();
 }
 
@@ -1789,6 +1854,9 @@ function startStage() {
   ui.muteGame.classList.remove("hidden");
   last = performance.now();
   accumulator = 0;
+  musicBeat = 0;
+  musicNextBeat = audio?.currentTime || 0;
+  musicScene = "combat";
   raf = requestAnimationFrame(frame);
 }
 function endLoop(reason) {
@@ -2997,6 +3065,7 @@ function update(dt) {
     return;
   }
   state.elapsed += dt;
+  updateMusic();
   state.stageActiveSeconds += dt;
   state.overdriveTimer = TemporalCore.tickOverdrive(state, dt).overdriveTimer;
   state.overloadText = Math.max(0, state.overloadText - dt);
@@ -3057,6 +3126,8 @@ function bindUI() {
     cancelAnimationFrame(raf);
     showStageSelect();
   };
+  for (const id of ["music-volume", "effects-volume"])
+    $(id).addEventListener("input", updateAudioSettings);
   $("keep-record").onclick = () => completeLoop(true);
   $("discard-record").onclick = () => completeLoop(false);
   $("result-map").onclick = () => {
@@ -3119,6 +3190,8 @@ function init() {
   bindUI();
   addEventListener("resize", resize);
   ui.muteTitle.textContent = `소리: ${muted ? "끔" : "켬"}`;
+  $("music-volume").value = Math.round(save.audioSettings.music * 100);
+  $("effects-volume").value = Math.round(save.audioSettings.effects * 100);
   render();
 }
 
@@ -3128,6 +3201,11 @@ function openLocalUiPreview() {
   const preview = params.get("ui-preview");
   if (preview === "equipment") showEquipmentSelection("stage");
   if (preview === "upgrade") showUpgrades();
+  if (preview === "pause") {
+    stage = STAGES[0];
+    startStage();
+    togglePause(true);
+  }
   const stagePreview = Number(params.get("stage-preview"));
   if ([2, 3, 4, 5].includes(stagePreview)) {
     stage = STAGES.find((item) => item.number === stagePreview);
