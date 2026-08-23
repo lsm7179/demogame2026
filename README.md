@@ -11,4 +11,4 @@
 
 `.github/workflows/pages.yml`은 `echo-breach/` 디렉터리만 Pages artifact로 업로드합니다. `signal-keeper/` 파일은 저장소에는 포함되지만 공개 사이트 산출물에는 포함되지 않습니다.
 
-예상 공개 주소: https://lsm7179.github.io/demogame2026/
+공개 주소: https://lsm7179.github.io/demogame2026/echo-breach
