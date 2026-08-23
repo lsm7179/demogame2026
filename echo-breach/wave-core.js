@@ -16,6 +16,7 @@
         activationDelay: Math.max(0.45, (group.delay || 0) + enemyIndex * 0.18),
         armed: false,
         elite: Boolean(group.elite),
+        targetShuttle: Boolean(group.targetShuttle),
       }))
     );
   }

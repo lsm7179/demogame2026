@@ -403,6 +403,7 @@ function freshState() {
     roomRewardResolved: false,
     shieldRefresh: true,
     history: [],
+    hazardCooldowns: {},
   };
 }
 function buildStats() {
@@ -980,7 +981,7 @@ function queueEnemies() {
       warnings.push(
         ...WaveCore.expandZoneWaves(zone).map((warning) => ({
           ...warning,
-          targetShuttle: false,
+          targetShuttle: warning.targetShuttle || false,
         }))
       );
     return;
@@ -1419,7 +1420,16 @@ function buildArena() {
     rooms = world.zones.map((zone) => ({ ...zone }));
     walls = world.walls.map((wall) => ({ ...wall, open: false }));
     switches = world.switches.map((item) => ({ ...item, charge: 0, lastHit: -9 }));
-    shuttle = null;
+    shuttle = world.shuttle
+      ? {
+          ...world.shuttle,
+          r: 38,
+          hp: state.shuttleHp,
+          maxHp: world.shuttle.hp,
+          survivors: Math.ceil((world.shuttle.survivors * state.shuttleHp) / world.shuttle.hp),
+        }
+      : null;
+    state.hazardCooldowns = {};
     return;
   }
   const layout = RoomData[stage.id];
@@ -1444,6 +1454,22 @@ function buildArena() {
       maxHp: 260,
       survivors: Math.ceil((12 * state.shuttleHp) / 260),
     };
+}
+function updateWorldHazards(dt) {
+  const hazards = activeWorld()?.hazards || [];
+  for (const hazard of hazards) {
+    state.hazardCooldowns[hazard.id] = Math.max(0, (state.hazardCooldowns[hazard.id] || 0) - dt);
+    const inside =
+      player.x + player.r > hazard.x &&
+      player.x - player.r < hazard.x + hazard.w &&
+      player.y + player.r > hazard.y &&
+      player.y - player.r < hazard.y + hazard.h;
+    if (inside && state.hazardCooldowns[hazard.id] <= 0) {
+      hurtPlayer(hazard.damage, { sourceType: "rift-floor" });
+      state.hazardCooldowns[hazard.id] = hazard.interval;
+      burst(player.x, player.y, "#9b456d", 10, 120);
+    }
+  }
 }
 function updateObjectives(dt) {
   const objective = activeObjective();
@@ -2249,6 +2275,14 @@ function renderArena() {
   }
   ctx.strokeStyle = "rgba(76,244,232,.22)";
   ctx.strokeRect(25, 25, size.width - 50, size.height - 50);
+  for (const hazard of activeWorld()?.hazards || []) {
+    ctx.fillStyle = "rgba(126,38,83,.22)";
+    ctx.fillRect(hazard.x, hazard.y, hazard.w, hazard.h);
+    ctx.strokeStyle = "rgba(196,75,125,.48)";
+    ctx.setLineDash([18, 12]);
+    ctx.strokeRect(hazard.x, hazard.y, hazard.w, hazard.h);
+    ctx.setLineDash([]);
+  }
   const encounter = currentEncounter();
   if (encounter) {
     ctx.fillStyle = "rgba(210,245,255,.52)";
@@ -2905,6 +2939,7 @@ function update(dt) {
     }
   }
   updateEnemies(dt);
+  updateWorldHazards(dt);
   updateBullets(dt);
   updateObjectives(dt);
   updateExplosions(dt);
@@ -3018,6 +3053,17 @@ function openLocalUiPreview() {
   const preview = params.get("ui-preview");
   if (preview === "equipment") showEquipmentSelection("stage");
   if (preview === "upgrade") showUpgrades();
+  const stagePreview = Number(params.get("stage-preview"));
+  if ([2, 3].includes(stagePreview)) {
+    stage = STAGES.find((item) => item.number === stagePreview);
+    startStage();
+    const world = activeWorld();
+    const zoneIndex = clamp(Number(params.get("zone")) - 1 || 0, 0, world.zones.length - 1);
+    const zone = world.zones[zoneIndex];
+    player.x = zone.x + zone.w / 2;
+    player.y = zone.y + zone.h / 2;
+    updateCameraTracking(0, true);
+  }
   const bossPreview = params.get("boss-preview");
   if (bossPreview) {
     stage = STAGES[0];

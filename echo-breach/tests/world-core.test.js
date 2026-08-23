@@ -68,3 +68,37 @@ test("zone lookup tracks player depth without camera state", () => {
   assert.equal(core.zoneAt(worlds.awakening.zones, { x: 1700, y: 540 }).id, "infested-lab");
   assert.equal(core.zoneAt(worlds.awakening.zones, { x: 3300, y: 540 }).id, "anchor-chamber");
 });
+
+test("Stage 2 is a continuous gate world with a reachable moving relay", () => {
+  const world = worlds["split-current"];
+  assert.equal(world.mode, "continuous");
+  assert.ok(world.width > viewport.width * 3);
+  assert.equal(world.switches[0].gateId, "split-gate");
+  assert.ok(world.walls.some((wall) => wall.id === "split-gate" && wall.gate));
+  assert.equal(world.objective.movingRelayIndex, 1);
+  const movingRelay = world.objective.relayPositions[world.objective.movingRelayIndex];
+  assert.ok(movingRelay.x > 0 && movingRelay.x < world.width);
+  assert.ok(movingRelay.y > 0 && movingRelay.y < world.height);
+});
+
+test("Stage 3 keeps rescue and hazard rules inside one continuous world", () => {
+  const world = worlds["rescue-window"];
+  assert.equal(world.mode, "continuous");
+  assert.equal(world.shuttle.survivors, 12);
+  assert.ok(world.shuttle.hp > 0);
+  assert.ok(world.hazards.length >= 3);
+  assert.ok(
+    world.zones.some((zone) =>
+      zone.waveGroups.some((group) => group.targetShuttle && group.enemies.length > 0)
+    )
+  );
+  assert.ok(
+    world.hazards.every(
+      (hazard) =>
+        hazard.x >= 0 &&
+        hazard.y >= 0 &&
+        hazard.x + hazard.w <= world.width &&
+        hazard.y + hazard.h <= world.height
+    )
+  );
+});

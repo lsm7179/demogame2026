@@ -131,6 +131,217 @@
     },
   };
 
+  const splitCurrent = {
+    mode: "continuous",
+    width: 4100,
+    height: 1080,
+    cameraFollowRate: 7.5,
+    playerStart: { x: 130, y: 540 },
+    zones: [
+      {
+        id: "long-range-approach",
+        name: "장거리 접근로",
+        x: 40,
+        y: 80,
+        w: 1250,
+        h: 920,
+        objective: "advance",
+        waves: ["shooter", "chaser", "shooter"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "range", enemies: ["shooter", "chaser"] },
+          { delay: 5.5, rhythm: "crossfire", enemies: ["shooter"] },
+        ],
+        spawnPoints: [
+          { x: 650, y: 250 },
+          { x: 820, y: 790 },
+          { x: 1120, y: 520 },
+        ],
+      },
+      {
+        id: "echo-gate",
+        name: "Echo 게이트",
+        x: 1290,
+        y: 80,
+        w: 1370,
+        h: 920,
+        objective: "switch",
+        waves: ["leech", "shooter", "blocker"],
+        waveGroups: [
+          { delay: 0.7, rhythm: "skirmish", enemies: ["leech", "shooter"] },
+          { delay: 6, rhythm: "elite", enemies: ["blocker"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 1580, y: 760 },
+          { x: 1920, y: 260 },
+          { x: 2420, y: 760 },
+        ],
+      },
+      {
+        id: "conduit-anchor",
+        name: "전도체 앵커",
+        x: 2660,
+        y: 80,
+        w: 1400,
+        h: 920,
+        objective: "anchor",
+        waves: ["shooter", "core-guard", "exploder"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "range", enemies: ["shooter", "exploder"] },
+          { delay: 5.5, rhythm: "elite", enemies: ["core-guard"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 2920, y: 240 },
+          { x: 3000, y: 820 },
+          { x: 3540, y: 180 },
+        ],
+      },
+    ],
+    walls: [
+      { x: 520, y: 80, w: 30, h: 330 },
+      { x: 520, y: 670, w: 30, h: 330 },
+      { x: 1290, y: 80, w: 32, h: 350 },
+      { x: 1290, y: 650, w: 32, h: 350 },
+      { x: 2140, y: 80, w: 42, h: 360 },
+      { id: "split-gate", x: 2140, y: 440, w: 42, h: 200, gate: true },
+      { x: 2140, y: 640, w: 42, h: 360 },
+      { x: 2660, y: 80, w: 32, h: 350 },
+      { x: 2660, y: 650, w: 32, h: 350 },
+      { x: 3230, y: 370, w: 300, h: 28 },
+      { x: 3230, y: 682, w: 300, h: 28 },
+    ],
+    switches: [
+      {
+        id: "split-switch",
+        x: 1680,
+        y: 270,
+        r: 31,
+        gateId: "split-gate",
+        threshold: 48,
+        gain: 16,
+        decay: 15,
+      },
+    ],
+    shortcuts: [
+      { id: "split-gate", name: "분리 전류 게이트", description: "Echo 사격으로 통로를 유지한다." },
+    ],
+    objective: {
+      core: { x: 3710, y: 540 },
+      relayPositions: [
+        { x: 3370, y: 270 },
+        { x: 3370, y: 810 },
+      ],
+      relayCount: 2,
+      requiredRelays: 2,
+      relayChargeMax: 100,
+      relayGain: 12,
+      relayDecay: 8,
+      shieldOpenSeconds: 5.3,
+      movingRelayIndex: 1,
+    },
+  };
+
+  const rescueWindow = {
+    mode: "continuous",
+    width: 4200,
+    height: 1080,
+    cameraFollowRate: 7.5,
+    playerStart: { x: 130, y: 540 },
+    shuttle: { x: 2050, y: 540, hp: 260, survivors: 12 },
+    hazards: [
+      { id: "rift-floor-a", x: 1120, y: 110, w: 330, h: 310, damage: 9, interval: 0.8 },
+      { id: "rift-floor-b", x: 1520, y: 660, w: 390, h: 280, damage: 9, interval: 0.8 },
+      { id: "rift-floor-c", x: 2480, y: 180, w: 360, h: 260, damage: 11, interval: 0.75 },
+    ],
+    zones: [
+      {
+        id: "evac-approach",
+        name: "구조 접근로",
+        x: 40,
+        y: 80,
+        w: 1300,
+        h: 920,
+        objective: "advance",
+        waves: ["chaser", "exploder", "leech"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "hazard", enemies: ["chaser", "leech"] },
+          { delay: 5.4, rhythm: "burst", enemies: ["exploder"] },
+        ],
+        spawnPoints: [
+          { x: 650, y: 250 },
+          { x: 820, y: 800 },
+          { x: 1180, y: 520 },
+        ],
+      },
+      {
+        id: "survivor-hangar",
+        name: "생존자 격납고",
+        x: 1340,
+        y: 80,
+        w: 1400,
+        h: 920,
+        objective: "escort",
+        waves: ["chaser", "shooter", "blocker", "exploder"],
+        waveGroups: [
+          { delay: 0.7, rhythm: "escort", enemies: ["chaser", "shooter"], targetShuttle: true },
+          { delay: 5, rhythm: "pressure", enemies: ["blocker", "exploder"], targetShuttle: true },
+        ],
+        spawnPoints: [
+          { x: 1590, y: 220 },
+          { x: 1660, y: 850 },
+          { x: 2430, y: 220 },
+          { x: 2500, y: 850 },
+        ],
+      },
+      {
+        id: "rescue-anchor",
+        name: "구조 앵커",
+        x: 2740,
+        y: 80,
+        w: 1420,
+        h: 920,
+        objective: "anchor",
+        waves: ["core-guard", "shooter", "chaser"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "defense", enemies: ["shooter", "chaser"] },
+          { delay: 5.2, rhythm: "elite", enemies: ["core-guard"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 3010, y: 230 },
+          { x: 3090, y: 830 },
+          { x: 3620, y: 180 },
+        ],
+      },
+    ],
+    walls: [
+      { x: 610, y: 80, w: 30, h: 310 },
+      { x: 610, y: 690, w: 30, h: 310 },
+      { x: 1340, y: 80, w: 32, h: 340 },
+      { x: 1340, y: 660, w: 32, h: 340 },
+      { x: 1840, y: 330, w: 420, h: 28 },
+      { x: 1840, y: 722, w: 420, h: 28 },
+      { x: 2740, y: 80, w: 32, h: 340 },
+      { x: 2740, y: 660, w: 32, h: 340 },
+      { x: 3260, y: 390, w: 300, h: 28 },
+      { x: 3260, y: 662, w: 300, h: 28 },
+    ],
+    switches: [],
+    shortcuts: [],
+    objective: {
+      core: { x: 3790, y: 540 },
+      relayPositions: [
+        { x: 3440, y: 280 },
+        { x: 3440, y: 800 },
+      ],
+      relayCount: 2,
+      requiredRelays: 2,
+      relayChargeMax: 100,
+      relayGain: 12,
+      relayDecay: 8,
+      shieldOpenSeconds: 5.3,
+      movingRelayIndex: -1,
+    },
+  };
+
   function freezeWorld(world) {
     return Object.freeze({
       ...world,
@@ -154,6 +365,8 @@
       walls: Object.freeze(world.walls.map((wall) => Object.freeze({ ...wall }))),
       switches: Object.freeze(world.switches.map((item) => Object.freeze({ ...item }))),
       shortcuts: Object.freeze(world.shortcuts.map((item) => Object.freeze({ ...item }))),
+      hazards: Object.freeze((world.hazards || []).map((item) => Object.freeze({ ...item }))),
+      shuttle: world.shuttle ? Object.freeze({ ...world.shuttle }) : null,
       objective: Object.freeze({
         ...world.objective,
         core: Object.freeze({ ...world.objective.core }),
@@ -164,5 +377,9 @@
     });
   }
 
-  return Object.freeze({ awakening: freezeWorld(awakening) });
+  return Object.freeze({
+    awakening: freezeWorld(awakening),
+    "split-current": freezeWorld(splitCurrent),
+    "rescue-window": freezeWorld(rescueWindow),
+  });
 });

@@ -29,3 +29,13 @@ test("off-zone warnings remain frozen until the player enters their zone", () =>
   assert.equal(armed.timer, 0.75);
   assert.equal(WaveCore.tickWarning(armed, 0.75, "entry").timer, 0);
 });
+
+test("rescue waves preserve their shuttle target through warning expansion", () => {
+  const [warning] = WaveCore.expandZoneWaves({
+    id: "hangar",
+    spawnPoints: [{ x: 10, y: 20 }],
+    waveGroups: [{ delay: 1, enemies: ["chaser"], targetShuttle: true }],
+  });
+  assert.equal(warning.targetShuttle, true);
+  assert.equal(warning.zoneId, "hangar");
+});
