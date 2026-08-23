@@ -1186,6 +1186,7 @@ function spawnEnemy(w) {
     stun: 0,
     corruptCursor: 0,
     corruptOffset: null,
+    corruptPending: [],
   });
 }
 function enemyShoot(e, target) {
@@ -1257,6 +1258,14 @@ function updateEnemies(dt) {
       continue;
     }
     if (e.behavior === "corrupted-replay") {
+      for (let index = e.corruptPending.length - 1; index >= 0; index--) {
+        const pending = e.corruptPending[index];
+        pending.timer -= dt;
+        if (pending.timer <= 0) {
+          corruptedEchoShoot(e, pending.angle);
+          e.corruptPending.splice(index, 1);
+        }
+      }
       const completed = recordings.length > 0;
       const recording = completed ? recordings[recordings.length - 1] : state.current;
       const playback = CorruptedEchoCore.playbackTime(state.elapsed, completed);
@@ -1272,7 +1281,10 @@ function updateEnemies(dt) {
         const due = CorruptedEchoCore.collectShots(recording.events, e.corruptCursor, playback);
         e.corruptCursor = due.nextIndex;
         for (const shot of due.shots)
-          corruptedEchoShoot(e, shot.angle ?? shot.profile?.angle ?? pose.angle);
+          e.corruptPending.push({
+            angle: shot.angle ?? shot.profile?.angle ?? pose.angle,
+            timer: CorruptedEchoCore.CONFIG.telegraphSeconds,
+          });
       }
       continue;
     }
@@ -2931,6 +2943,18 @@ function renderSpecialMonster(e, monster, pulse) {
     ctx.lineTo(-14, 10);
     ctx.closePath();
     ctx.fill();
+    for (const pending of e.corruptPending || []) {
+      const progress = 1 - pending.timer / CorruptedEchoCore.CONFIG.telegraphSeconds;
+      ctx.save();
+      ctx.rotate(pending.angle - Math.atan2(player.y - e.y, player.x - e.x));
+      ctx.strokeStyle = `rgba(255,96,128,${0.25 + progress * 0.65})`;
+      ctx.lineWidth = 2 + progress * 2;
+      ctx.beginPath();
+      ctx.moveTo(e.r + 5, 0);
+      ctx.lineTo(e.r + 90, 0);
+      ctx.stroke();
+      ctx.restore();
+    }
     ctx.stroke();
     ctx.setLineDash([3, 5]);
     ctx.beginPath();
@@ -3127,10 +3151,13 @@ function renderParticles() {
 }
 function renderWarnings() {
   for (const w of warnings) {
-    ctx.strokeStyle = "#ff3f63";
+    const corrupted = MonsterData[w.type]?.visual === "corrupted";
+    ctx.strokeStyle = corrupted ? "#d33b78" : "#ff3f63";
+    ctx.setLineDash(corrupted ? [6, 5] : []);
     ctx.beginPath();
     ctx.arc(w.x, w.y, 22 + (w.timer % 0.25) * 50, 0, 6.283);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
 }
 function renderCursor() {

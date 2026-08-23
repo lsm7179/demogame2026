@@ -10,6 +10,7 @@
     projectileDamage: 7,
     projectileSpeed: 210,
     maxShotsPerTick: 2,
+    telegraphSeconds: 0.34,
   });
 
   function angleLerp(a, b, t) {
