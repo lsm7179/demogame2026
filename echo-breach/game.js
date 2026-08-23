@@ -932,7 +932,7 @@ function fireWeapon(owner, isEcho, profile, record = true) {
       pierce: p.pierce,
       coreDamageMultiplier: p.coreDamageMultiplier,
       visualProfile: { ...p.visualProfile },
-      impactKind: CombatFeedback.isCriticalImpact(p, BASE.BULLET_DAMAGE) ? "critical" : "normal",
+      impactKind: CombatFeedback.isCriticalImpact(p, BASE.PLAYER_DAMAGE) ? "critical" : "normal",
       hitIds: [],
     });
   }
