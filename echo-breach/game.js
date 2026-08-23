@@ -422,6 +422,9 @@ function freshState() {
     history: [],
     hazardCooldowns: {},
     zoneProgress: {},
+    shuttleAlert: 0,
+    shuttleAlertSound: 0,
+    failureReason: null,
   };
 }
 function buildStats() {
@@ -1329,7 +1332,7 @@ function updateEnemies(dt) {
       if (e.behavior === "leech") state.slowTimer = Math.max(state.slowTimer, 2.2);
       e.touch = 0.7;
     } else if (target === shuttle && hit(e, shuttle) && e.touch <= 0) {
-      hurtShuttle(e.type === "blocker" ? 18 : 11);
+      hurtShuttle(e.type === "blocker" ? 18 : 11, e);
       e.touch = 0.8;
     }
   }
@@ -1354,7 +1357,7 @@ function updateBullets(dt) {
     }
     if (!gone && b.team === "enemy") {
       if (b.targetShuttle && shuttle && shuttle.hp > 0 && hit(b, shuttle)) {
-        hurtShuttle(b.damage);
+        hurtShuttle(b.damage, b);
         gone = true;
       } else if (hit(b, player)) {
         hurtPlayer(b.damage, b);
@@ -1580,13 +1583,28 @@ function monsterRemains(e) {
     });
   }
 }
-function hurtShuttle(dmg) {
+function hurtShuttle(dmg, source) {
   if (!shuttle || shuttle.hp <= 0) return;
+  const rules = activeWorld()?.escortRules;
   shuttle.hp = Math.max(0, shuttle.hp - dmg);
+  if (shuttle.hp <= 0 && rules?.destruction?.[diff.id] === "last-survivor") {
+    shuttle.hp = shuttle.maxHp / rules.totalSurvivors;
+    combatText(shuttle.x, shuttle.y - shuttle.r - 16, "최후 생존자 보호", "#79dcff", true);
+  }
   state.shuttleHp = shuttle.hp;
-  shuttle.survivors = Math.ceil((12 * shuttle.hp) / shuttle.maxHp);
+  shuttle.survivors = Math.ceil(((rules?.totalSurvivors || 12) * shuttle.hp) / shuttle.maxHp);
+  state.shuttleAlert = rules?.warningSeconds || 1.2;
+  state.shuttleThreatAngle = source ? Math.atan2(source.y - shuttle.y, source.x - shuttle.x) : 0;
+  if (state.shuttleAlertSound <= 0) {
+    tone("square", 105, 0.16, 0.055, 55);
+    state.shuttleAlertSound = rules?.warningSoundCooldown || 0.55;
+  }
   shake = 5;
   burst(shuttle.x, shuttle.y, "#79dcff", 10, 130);
+  if (shuttle.hp <= 0) {
+    state.failureReason = "구조선 파괴";
+    endStage(false);
+  }
 }
 
 // ── 릴레이, 장벽, Chrono Anchor ────────────────────────────────────────────
@@ -1744,6 +1762,7 @@ function updateZoneProgression(dt) {
       warnings,
       switches,
       shuttle,
+      escortRules: world.escortRules,
       player,
       monsters: MonsterData,
     },
@@ -2049,8 +2068,9 @@ function nextLoop() {
   last = performance.now();
 }
 function calculateRank(win) {
+  const totalSurvivors = activeWorld()?.escortRules?.totalSurvivors || 12;
   const sync = state.totalCoreHits ? state.echoCoreHits / state.totalCoreHits : 0,
-    rescue = shuttle ? shuttle.survivors / 12 : 1;
+    rescue = shuttle ? shuttle.survivors / totalSurvivors : 1;
   let value =
     (win ? 500 : 0) +
     (diff.maxLoops - state.loop) * 90 +
@@ -2071,7 +2091,7 @@ function calculateRank(win) {
       `피해 ${Math.round(state.damageTaken)}`,
       `Echo 협공 ${Math.round(sync * 100)}%`,
       shuttle
-        ? `생존자 ${shuttle.survivors}/12`
+        ? `생존자 ${shuttle.survivors}/${totalSurvivors}`
         : `잔여 시간 ${Math.max(0, diff.loopTime - state.elapsed).toFixed(1)}초`,
     ],
   };
@@ -2107,14 +2127,17 @@ function endStage(win) {
   hideAll();
   screens.result.classList.remove("hidden");
   $("result-kicker").textContent = win ? "ANCHOR COLLAPSED // TIME RESTORED" : "TEMPORAL LOCKDOWN";
-  $("result-title").textContent = win ? `${stage.name} CLEAR` : "BREACH FAILED";
+  $("result-title").textContent = win
+    ? `${stage.name} CLEAR`
+    : state.failureReason || "BREACH FAILED";
   $("rank-badge").textContent = rank.rank;
   $("rank-reasons").textContent = rank.reasons.join(" · ");
   $("result-score").textContent = final;
   $("result-loops").textContent = `${state.loop} / ${diff.maxLoops}`;
   $("result-sync").textContent = `${Math.round(rank.sync * 100)}%`;
   $("result-hurt").textContent = Math.round(state.damageTaken);
-  $("result-rescue").textContent = shuttle ? `${shuttle.survivors} / 12` : "—";
+  const totalSurvivors = activeWorld()?.escortRules?.totalSurvivors || 12;
+  $("result-rescue").textContent = shuttle ? `${shuttle.survivors} / ${totalSurvivors}` : "—";
   $("result-combo").textContent = state.bestCombo;
   $("result-overloads").textContent = state.overloads;
   $("result-next").textContent = win ? (stage.number === 5 ? "엔딩 보기" : "장비 회수") : "재시도";
@@ -2331,6 +2354,7 @@ function selectEquipment(itemId) {
 }
 function updateHUD() {
   const objective = activeObjective();
+  const world = activeWorld();
   ui.stage.textContent = `S${stage.number} // ${stage.name}`;
   ui.loop.textContent = `${state.loop} / ${diff.maxLoops}`;
   ui.time.textContent = Math.max(0, diff.loopTime - state.elapsed).toFixed(1);
@@ -2361,11 +2385,11 @@ function updateHUD() {
   ui.shuttleHud.classList.toggle("hidden", !shuttle);
   if (shuttle) {
     ui.shuttle.style.width = `${(100 * shuttle.hp) / shuttle.maxHp}%`;
-    ui.survivors.textContent = `${shuttle.survivors} / 12`;
+    ui.survivors.textContent = `${shuttle.survivors} / ${world?.escortRules?.totalSurvivors || 12}`;
+    ui.shuttleHud.classList.toggle("danger", state.shuttleAlert > 0);
   }
   const gate = walls.find((w) => w.gate);
   const encounter = currentEncounter();
-  const world = activeWorld();
   const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
   const progressionGate = world?.progressionGates?.find((item) => item.zoneId === zone?.id);
   const progressionRecord = zone ? state.zoneProgress[zone.id] : null;
@@ -2374,6 +2398,7 @@ function updateHUD() {
       ? ZoneObjectiveCore.shortStatus(zone, progressionRecord, progressionGate, {
           difficultyId: diff.id,
           shuttle,
+          escortRules: world.escortRules,
         })
       : UiCore.objectiveAlert({
           zoneName: zone?.name,
@@ -3167,6 +3192,7 @@ function renderWorldGuidance() {
   for (const relay of relays)
     mark(relay, relay.active ? "#7fffee" : "#a673ff", "ring", relay.active ? 4 : 3);
   mark(core, "#ff4968", "diamond", 5);
+  if (shuttle) mark(shuttle, state.shuttleAlert > 0 ? "#ff5570" : "#79dcff", "diamond", 4.5);
   for (const echo of echoes) if (!echo.finished) mark(echo, "#45f5e9", "ring", 3.4);
   mark(player, "#ffb45d", "diamond", 4.4);
 
@@ -3183,6 +3209,23 @@ function renderWorldGuidance() {
     ctx.lineTo(-7, -6);
     ctx.lineTo(-4, 0);
     ctx.lineTo(-7, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  if (shuttle && state.shuttleAlert > 0) {
+    const shuttleScreen = WorldCore.worldToScreen(shuttle, camera, view);
+    const alertMarker = UiCore.offscreenMarker(shuttleScreen, viewport, 44);
+    ctx.save();
+    ctx.translate(alertMarker.x, alertMarker.y);
+    ctx.rotate(alertMarker.angle);
+    ctx.fillStyle = "#ff5570";
+    ctx.beginPath();
+    ctx.moveTo(15, 0);
+    ctx.lineTo(-9, -8);
+    ctx.lineTo(-5, 0);
+    ctx.lineTo(-9, 8);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -3248,6 +3291,8 @@ function update(dt) {
   state.stageActiveSeconds += dt;
   state.overdriveTimer = TemporalCore.tickOverdrive(state, dt).overdriveTimer;
   state.overloadText = Math.max(0, state.overloadText - dt);
+  state.shuttleAlert = Math.max(0, state.shuttleAlert - dt);
+  state.shuttleAlertSound = Math.max(0, state.shuttleAlertSound - dt);
   updateCameraTracking(dt);
   updatePlayer(dt);
   updateEchoes(dt);

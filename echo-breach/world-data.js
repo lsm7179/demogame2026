@@ -272,6 +272,14 @@
     cameraFollowRate: 7.5,
     playerStart: { x: 130, y: 540 },
     shuttle: { x: 2050, y: 540, hp: 260, survivors: 12 },
+    escortRules: {
+      maxHp: 260,
+      totalSurvivors: 12,
+      minSurvivors: { story: 1, operative: 6, paradox: 8 },
+      destruction: { story: "last-survivor", operative: "stage-fail", paradox: "stage-fail" },
+      warningSeconds: 1.2,
+      warningSoundCooldown: 0.55,
+    },
     progressionGates: [
       { id: "evac-lock", zoneId: "evac-approach", x: 1340, y: 420, w: 32, h: 240 },
       {
@@ -281,7 +289,6 @@
         y: 420,
         w: 32,
         h: 240,
-        minSurvivors: { story: 1, operative: 6, paradox: 8 },
       },
     ],
     hazards: [
@@ -664,6 +671,13 @@
       shortcuts: Object.freeze(world.shortcuts.map((item) => Object.freeze({ ...item }))),
       hazards: Object.freeze((world.hazards || []).map((item) => Object.freeze({ ...item }))),
       shuttle: world.shuttle ? Object.freeze({ ...world.shuttle }) : null,
+      escortRules: world.escortRules
+        ? Object.freeze({
+            ...world.escortRules,
+            minSurvivors: Object.freeze({ ...world.escortRules.minSurvivors }),
+            destruction: Object.freeze({ ...world.escortRules.destruction }),
+          })
+        : null,
       objective: Object.freeze({
         ...world.objective,
         core: Object.freeze({ ...world.objective.core }),

@@ -26,8 +26,9 @@
     );
   }
 
-  function thresholdForEscort(config, difficultyId) {
-    return config.minSurvivors?.[difficultyId] ?? config.minSurvivors?.operative ?? 1;
+  function thresholdForEscort(config, context) {
+    const thresholds = config.minSurvivors || context.escortRules?.minSurvivors;
+    return thresholds?.[context.difficultyId] ?? thresholds?.operative ?? 1;
   }
 
   function evaluate(zone, record, gate, context, dt) {
@@ -50,7 +51,7 @@
       complete = Boolean(device && device.charge >= (device.threshold || 42));
     }
     if (zone.objective === "escort") {
-      const minimum = thresholdForEscort(gate, context.difficultyId);
+      const minimum = thresholdForEscort(gate, context);
       complete ||=
         entered &&
         context.shuttle?.survivors >= minimum &&
@@ -98,7 +99,7 @@
     if (zone.objective === "elite") return "RIFT WARDEN 처치";
     if (zone.objective === "switch") return "Echo로 시간 스위치 유지";
     if (zone.objective === "escort") {
-      const minimum = thresholdForEscort(gate, context.difficultyId);
+      const minimum = thresholdForEscort(gate, context);
       return `구조선 방어 · 생존자 ${context.shuttle?.survivors || 0}/${minimum}`;
     }
     if (zone.objective === "survive")
