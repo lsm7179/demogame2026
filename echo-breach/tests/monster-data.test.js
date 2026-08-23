@@ -37,6 +37,13 @@ test("new temporal monsters expose data-driven behavior and rewards", () => {
   }
 });
 
+test("corrupted Echo is a distinct record-replay threat", () => {
+  const monster = MonsterData["corrupted-echo"];
+  assert.equal(monster.behavior, "corrupted-replay");
+  assert.equal(monster.visual, "corrupted");
+  assert.ok(monster.hp > MonsterData.shooter.hp);
+});
+
 test("relay guards fall back to the room core when a combat room has no relays", () => {
   const core = { x: 640, y: 335 };
   assert.equal(monsters.selectGuardTarget([], core, { x: 100, y: 100 }), core);

@@ -102,3 +102,15 @@ test("Stage 3 keeps rescue and hazard rules inside one continuous world", () => 
     )
   );
 });
+
+test("Stage 4 is a continuous memory vault with corrupted Echo encounters", () => {
+  const world = worlds["corrupted-record"];
+  assert.equal(world.mode, "continuous");
+  assert.ok(world.width > viewport.width * 3);
+  assert.ok(world.zones.every((zone) => zone.waveGroups.length > 0 && zone.spawnPoints.length > 0));
+  assert.ok(
+    world.zones.filter((zone) =>
+      zone.waveGroups.some((group) => group.enemies.includes("corrupted-echo"))
+    ).length >= 2
+  );
+});

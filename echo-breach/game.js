@@ -142,20 +142,22 @@ const STAGES = [
     number: 4,
     name: "CORRUPTED RECORD",
     subtitle: "Hostile Memory Vault",
-    briefing: ["적대적 기록 신호 감지."],
-    arena: { type: "locked" },
+    briefing: [
+      "보관소가 ECHO-07의 전투 기록을 오염시켰다.",
+      "반복한 경로를 추적하는 적대적 Echo를 피해 Anchor를 파괴하라.",
+    ],
+    arena: { type: "continuous", tint: "#0c0710" },
     visual: {
       color: "#ff607c",
       motif: "corrupted",
       preview: "linear-gradient(145deg,#361322,#0c0710 62%)",
     },
-    difficulty: {},
-    objective: { type: "future" },
-    waves: [],
+    difficulty: { coreHp: 820 },
+    objective: ObjectiveData["corrupted-record"],
+    waves: [["corrupted-echo", "blocker", "shooter"]],
     unlock: 4,
-    rewards: [],
-    ranks: { S: 1, A: 1, B: 1 },
-    locked: true,
+    rewards: ["time", "weapon", "hull"],
+    ranks: { S: 1120, A: 850, B: 610 },
   },
   {
     id: "prime-anchor",
@@ -1025,6 +1027,8 @@ function spawnEnemy(w) {
     hitFlash: 0,
     hurt: 0,
     stun: 0,
+    corruptCursor: 0,
+    corruptOffset: null,
   });
 }
 function enemyShoot(e, target) {
@@ -1043,6 +1047,24 @@ function enemyShoot(e, target) {
     damage: 12,
     targetShuttle: e.targetShuttle,
   });
+}
+function corruptedEchoShoot(e, angle) {
+  const speed = CorruptedEchoCore.CONFIG.projectileSpeed * diff.enemyBullet;
+  bullets.push({
+    x: e.x + Math.cos(angle) * 20,
+    y: e.y + Math.sin(angle) * 20,
+    px: e.x,
+    py: e.y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    r: 5,
+    life: 3.2,
+    team: "enemy",
+    sourceType: "corrupted-echo",
+    damage: CorruptedEchoCore.CONFIG.projectileDamage,
+  });
+  e.telegraph = 0.08;
+  burst(e.x, e.y, "#c94d72", 5, 70);
 }
 function bossVolley(e) {
   const profile = BossCore.attackProfile(e.bossConfig, e.bossPhase);
@@ -1075,6 +1097,26 @@ function updateEnemies(dt) {
     e.hurt = Math.max(0, e.hurt - dt * 8);
     if (e.stun > 0) {
       e.stun -= dt;
+      continue;
+    }
+    if (e.behavior === "corrupted-replay") {
+      const completed = recordings.length > 0;
+      const recording = completed ? recordings[recordings.length - 1] : state.current;
+      const playback = CorruptedEchoCore.playbackTime(state.elapsed, completed);
+      const pose = CorruptedEchoCore.samplePose(recording?.samples, playback);
+      if (pose) {
+        if (!e.corruptOffset) e.corruptOffset = { x: e.x - pose.x, y: e.y - pose.y };
+        const oldX = e.x;
+        const oldY = e.y;
+        e.x = clamp(pose.x + e.corruptOffset.x, 55, worldSize().width - 55);
+        e.y = clamp(pose.y + e.corruptOffset.y, 60, worldSize().height - 55);
+        e.angle = pose.angle;
+        e.wobble += Math.hypot(e.x - oldX, e.y - oldY) * 0.012;
+        const due = CorruptedEchoCore.collectShots(recording.events, e.corruptCursor, playback);
+        e.corruptCursor = due.nextIndex;
+        for (const shot of due.shots)
+          corruptedEchoShoot(e, shot.angle ?? shot.profile?.angle ?? pose.angle);
+      }
       continue;
     }
     if (e.bossConfig) {
@@ -1859,7 +1901,7 @@ function endStage(win) {
       score: Math.max(old.score || 0, final),
       rank: betterRank(old.rank, rank.rank),
     };
-    save.unlockedStage = Math.max(save.unlockedStage, Math.min(3, stage.number + 1));
+    save.unlockedStage = Math.max(save.unlockedStage, Math.min(4, stage.number + 1));
     save.hasCampaign = true;
     state.firstClear = !old.rank;
     persist();
@@ -2591,7 +2633,26 @@ function renderEnemies() {
 }
 function renderSpecialMonster(e, monster, pulse) {
   ctx.fillStyle = e.hitFlash > 0 ? "#fff" : monster.color;
-  if (monster.visual === "leech") {
+  if (monster.visual === "corrupted") {
+    ctx.globalAlpha = 0.82;
+    ctx.strokeStyle = monster.accent;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(-14, -10);
+    ctx.lineTo(10, -7);
+    ctx.lineTo(17, 0);
+    ctx.lineTo(10, 7);
+    ctx.lineTo(-14, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([3, 5]);
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r + 8 + Math.sin(e.wobble * 3) * 3, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  } else if (monster.visual === "leech") {
     ctx.beginPath();
     ctx.ellipse(0, 0, e.r * 1.4 * pulse, e.r * 0.55, 0, 0, 6.283);
     ctx.fill();
@@ -3054,7 +3115,7 @@ function openLocalUiPreview() {
   if (preview === "equipment") showEquipmentSelection("stage");
   if (preview === "upgrade") showUpgrades();
   const stagePreview = Number(params.get("stage-preview"));
-  if ([2, 3].includes(stagePreview)) {
+  if ([2, 3, 4].includes(stagePreview)) {
     stage = STAGES.find((item) => item.number === stagePreview);
     startStage();
     const world = activeWorld();

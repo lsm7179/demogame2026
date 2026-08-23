@@ -38,6 +38,10 @@
       { x: 430, y: 210 },
       { x: 850, y: 210 },
     ]),
+    "corrupted-record": objective("anchor", { x: 640, y: 335 }, [
+      { x: 430, y: 210 },
+      { x: 850, y: 460 },
+    ]),
   };
 
   function isValid(config) {

@@ -342,6 +342,101 @@
     },
   };
 
+  const corruptedRecord = {
+    mode: "continuous",
+    width: 4400,
+    height: 1080,
+    cameraFollowRate: 7.5,
+    playerStart: { x: 130, y: 540 },
+    zones: [
+      {
+        id: "memory-intake",
+        name: "기록 유입구",
+        x: 40,
+        y: 80,
+        w: 1320,
+        h: 920,
+        objective: "advance",
+        waves: ["leech", "shooter", "corrupted-echo"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "memory", enemies: ["leech", "shooter"] },
+          { delay: 5.2, rhythm: "corruption", enemies: ["corrupted-echo"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 620, y: 250 },
+          { x: 810, y: 800 },
+          { x: 1180, y: 540 },
+        ],
+      },
+      {
+        id: "mirror-vault",
+        name: "거울 기록고",
+        x: 1360,
+        y: 80,
+        w: 1480,
+        h: 920,
+        objective: "survive",
+        waves: ["corrupted-echo", "blocker", "corrupted-echo"],
+        waveGroups: [
+          { delay: 0.7, rhythm: "mirror", enemies: ["corrupted-echo", "blocker"] },
+          { delay: 6.4, rhythm: "mirror", enemies: ["corrupted-echo"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 1630, y: 230 },
+          { x: 2050, y: 820 },
+          { x: 2600, y: 260 },
+        ],
+      },
+      {
+        id: "record-anchor",
+        name: "기록 앵커",
+        x: 2840,
+        y: 80,
+        w: 1520,
+        h: 920,
+        objective: "anchor",
+        waves: ["core-guard", "corrupted-echo", "exploder"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "defense", enemies: ["core-guard", "exploder"] },
+          { delay: 5.5, rhythm: "corruption", enemies: ["corrupted-echo"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 3110, y: 220 },
+          { x: 3330, y: 820 },
+          { x: 3860, y: 180 },
+        ],
+      },
+    ],
+    walls: [
+      { x: 600, y: 80, w: 30, h: 330 },
+      { x: 600, y: 670, w: 30, h: 330 },
+      { x: 1360, y: 80, w: 32, h: 350 },
+      { x: 1360, y: 650, w: 32, h: 350 },
+      { x: 1880, y: 250, w: 300, h: 28 },
+      { x: 2140, y: 802, w: 300, h: 28 },
+      { x: 2840, y: 80, w: 32, h: 350 },
+      { x: 2840, y: 650, w: 32, h: 350 },
+      { x: 3450, y: 360, w: 280, h: 28 },
+      { x: 3450, y: 692, w: 280, h: 28 },
+    ],
+    switches: [],
+    shortcuts: [],
+    objective: {
+      core: { x: 4020, y: 540 },
+      relayPositions: [
+        { x: 3650, y: 260 },
+        { x: 3650, y: 820 },
+      ],
+      relayCount: 2,
+      requiredRelays: 2,
+      relayChargeMax: 100,
+      relayGain: 12,
+      relayDecay: 8,
+      shieldOpenSeconds: 5.3,
+      movingRelayIndex: -1,
+    },
+  };
+
   function freezeWorld(world) {
     return Object.freeze({
       ...world,
@@ -381,5 +476,6 @@
     awakening: freezeWorld(awakening),
     "split-current": freezeWorld(splitCurrent),
     "rescue-window": freezeWorld(rescueWindow),
+    "corrupted-record": freezeWorld(corruptedRecord),
   });
 });
