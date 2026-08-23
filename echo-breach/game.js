@@ -1860,6 +1860,7 @@ function updateZoneProgression(dt) {
       shuttle,
       escortRules: world.escortRules,
       player,
+      core,
       monsters: MonsterData,
     },
     dt
@@ -2488,7 +2489,9 @@ function updateHUD() {
   const gate = walls.find((w) => w.gate);
   const encounter = currentEncounter();
   const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
-  const progressionGate = world?.progressionGates?.find((item) => item.zoneId === zone?.id);
+  const progressionGate =
+    world?.progressionGates?.find((item) => item.zoneId === zone?.id) ||
+    (zone && ["anchor", "final-boss"].includes(zone.objective) ? { zoneId: zone.id } : null);
   const progressionRecord = zone ? state.zoneProgress[zone.id] : null;
   ui.objective.textContent = world
     ? progressionGate && progressionRecord && !progressionRecord.complete

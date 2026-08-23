@@ -77,6 +77,14 @@
         sources.has("player") &&
         echoSources.length >= (gate.requiredEchoes || 1);
     }
+    if (zone.objective === "anchor") complete ||= entered && context.core?.hp <= 0;
+    if (zone.objective === "final-boss") {
+      const guardians = living.filter((enemy) => enemy.boss || enemy.stageGuardian);
+      const pendingGuardians = pending.filter(
+        (enemy) => context.monsters[enemy.type]?.boss || context.monsters[enemy.type]?.stageGuardian
+      );
+      complete ||= entered && guardians.length + pendingGuardians.length === 0;
+    }
     return { active: record.active, entered, complete, elapsed };
   }
 
@@ -86,7 +94,9 @@
       const zone = world.zones[index];
       const previousComplete = index === 0 || next[world.zones[index - 1].id].complete;
       const record = { ...(progress[zone.id] || {}), active: previousComplete };
-      const gate = world.progressionGates?.find((item) => item.zoneId === zone.id);
+      const gate =
+        world.progressionGates?.find((item) => item.zoneId === zone.id) ||
+        (["anchor", "final-boss"].includes(zone.objective) ? { zoneId: zone.id } : null);
       next[zone.id] = gate && previousComplete ? evaluate(zone, record, gate, context, dt) : record;
     }
     return next;
