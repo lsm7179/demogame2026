@@ -234,7 +234,7 @@ const UPGRADES = [
   },
 ];
 const SAVE_KEY = "echoBreachCampaign",
-  SAVE_VERSION = 2;
+  SAVE_VERSION = 3;
 
 // ── DOM 참조와 상태 ────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id),
@@ -251,6 +251,7 @@ const screens = [
   "override",
   "result",
   "upgrade",
+  "equipment",
 ].reduce((o, n) => ((o[n] = $(n + "-screen")), o), {});
 const ui = {
   hud: $("hud"),
@@ -259,6 +260,9 @@ const ui = {
   time: $("time-value"),
   echoes: $("echo-value"),
   hp: $("hp-bar"),
+  shieldHud: $("shield-hud"),
+  shield: $("shield-bar"),
+  shieldValue: $("shield-value"),
   dash: $("dash-bar"),
   overdrive: $("overdrive-bar"),
   overdriveLabel: $("overdrive-label"),
@@ -271,6 +275,7 @@ const ui = {
   survivors: $("survivor-value"),
   muteTitle: $("mute-title"),
   muteGame: $("mute-game"),
+  loadout: $("loadout-hud"),
 };
 let save = loadSave(),
   state = freshState(),
@@ -292,6 +297,8 @@ let save = loadSave(),
   warnings = [],
   echoes = [],
   recordings = [];
+let pendingEquipmentFlow = null,
+  equipmentSelectionLocked = false;
 let raf = 0,
   last = 0,
   accumulator = 0,
@@ -341,6 +348,8 @@ function freshState() {
     anchorPhase: "armored",
     overloadText: 0,
     collapsing: false,
+    roomRewardResolved: false,
+    shieldRefresh: true,
     history: [],
   };
 }
@@ -353,20 +362,23 @@ function buildStats() {
         : has("charge-lance")
           ? "charge"
           : "standard";
-  return {
+  const baseStats = {
     weapon,
     maxHp: BASE.PLAYER_HP + (has("reinforced-hull") ? 35 : 0),
     speed: BASE.PLAYER_SPEED * (has("reinforced-hull") ? 0.93 : 1),
     playerDamage: BASE.PLAYER_DAMAGE * (has("echo-amplifier") ? 0.92 : 1),
     echoRatio: has("echo-amplifier") ? 0.8 : 0.65,
-    fireRate: BASE.FIRE_RATE * (has("pulse-cannon") ? 1.62 : 1),
+    fireRate: BASE.FIRE_RATE,
     dashCd: BASE.DASH_CD * diff.dashCd,
     dashCharges: has("vector-thruster") ? 2 : 1,
-    dashTime: BASE.DASH_TIME * (has("vector-thruster") ? 0.88 : 1),
+    dashTime: BASE.DASH_TIME,
+    shardRadius: GameBalance.overdrive.pickupRadius,
+    overloadCooldown: GameBalance.overload.cooldown,
     extended: has("extended-memory"),
     override: has("record-override"),
     emergency: has("emergency-rewind"),
   };
+  return EquipmentCore.buildEquipmentStats(baseStats, save.loadout, EquipmentData, save.upgrades);
 }
 
 // ── 안전한 캠페인 저장 ─────────────────────────────────────────────────────
@@ -377,6 +389,8 @@ function defaultSave() {
     unlockedStage: 1,
     stages: {},
     upgrades: [],
+    loadout: EquipmentCore.createEmptyLoadout(),
+    equipmentOwned: [],
     muted: false,
     hasCampaign: false,
   };
@@ -384,13 +398,9 @@ function defaultSave() {
 function loadSave() {
   try {
     const x = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!x || x.version !== SAVE_VERSION || !Array.isArray(x.upgrades)) return defaultSave();
-    return {
-      ...defaultSave(),
-      ...x,
-      stages: x.stages && typeof x.stages === "object" ? x.stages : {},
-      upgrades: x.upgrades.filter((id) => UPGRADES.some((u) => u.id === id)),
-    };
+    const migrated = EquipmentCore.migrateSave(x, defaultSave(), EquipmentData, SAVE_VERSION);
+    migrated.upgrades = migrated.upgrades.filter((id) => UPGRADES.some((u) => u.id === id));
+    return migrated;
   } catch {
     return defaultSave();
   }
@@ -420,6 +430,13 @@ function bindInputs() {
     if (e.code === "KeyR" && state.mode === "playing" && !state.paused) endLoop("early");
     if (e.code === "Escape" && state.mode === "playing") togglePause();
     if (e.code === "KeyM") toggleMute();
+    if (state.mode === "equipmentSelect" && ["ArrowLeft", "ArrowRight"].includes(e.code)) {
+      e.preventDefault();
+      const cards = [...$("equipment-cards").querySelectorAll("button:not(:disabled)")];
+      const index = Math.max(0, cards.indexOf(document.activeElement));
+      const direction = e.code === "ArrowRight" ? 1 : -1;
+      cards[(index + direction + cards.length) % cards.length]?.focus();
+    }
   });
   addEventListener("keyup", (e) => (keys[e.code] = false));
   canvas.addEventListener("pointermove", (e) => {
@@ -539,6 +556,7 @@ function makePlayer() {
     vy: 0,
     angle: -Math.PI / 2,
     hp: stats.maxHp,
+    shield: state.shieldRefresh ? stats.loopShield : 0,
     fireCd: 0,
     dashCd: 0,
     dashStock: stats.dashCharges,
@@ -605,70 +623,74 @@ function updatePlayer(dt) {
   while (state.history.length && state.history[0].t < state.elapsed - 2.2) state.history.shift();
 }
 function makeShotProfile(angle, charge = 0) {
-  let p = {
-    weapon: stats.weapon,
-    a: angle,
-    count: 1,
-    spread: 0,
-    damage: stats.playerDamage,
-    pierce: 0,
-    size: 3,
-    speed: BASE.BULLET_SPEED,
-    charge,
-  };
-  if (stats.weapon === "split")
-    Object.assign(p, {
-      count: GameBalance.splitShot.projectileCount,
-      spread: GameBalance.splitShot.spread,
-      damage: stats.playerDamage * GameBalance.splitShot.damageMultiplier,
-    });
-  if (stats.weapon === "pulse")
-    Object.assign(p, { damage: stats.playerDamage * 1.55, pierce: 3, size: 6, speed: 650 });
-  if (stats.weapon === "charge")
-    Object.assign(p, {
-      damage: stats.playerDamage * (0.7 + charge * 1.65),
-      pierce: charge >= 0.82 ? 5 : 0,
-      size: 4 + charge * 5,
-      speed: 680 + charge * 160,
-    });
+  const equipmentDamageMultiplier = stats.equipmentPlayerDamageMultiplier || 1;
+  const p = EquipmentCore.buildFireProfile(
+    {
+      angle,
+      damage: stats.playerDamage,
+      echoBaseDamage: stats.playerDamage / equipmentDamageMultiplier,
+      fireInterval: stats.fireRate,
+      speed: BASE.BULLET_SPEED,
+      range: BASE.BULLET_SPEED * 1.4,
+      size: 3,
+      charge,
+    },
+    save.loadout,
+    save.upgrades,
+    EquipmentData
+  );
+  p.a = angle;
   return p;
 }
 function fireWeapon(owner, isEcho, profile, record = true) {
+  const p = EquipmentCore.snapshotFireProfile({ ...profile, angle: profile.a ?? profile.angle });
+  p.a = p.angle;
   owner.fireCd =
-    stats.fireRate /
+    p.fireInterval /
     (state.overdriveTimer > 0 ? GameBalance.overdrive.playerFireRateMultiplier : 1);
   owner.recoil = 1;
-  for (let i = 0; i < profile.count; i++) {
-    const off = (i - (profile.count - 1) / 2) * profile.spread,
-      a = profile.a + off,
+  for (let i = 0; i < p.count; i++) {
+    const off = (i - (p.count - 1) / 2) * p.spread,
+      a = p.a + off,
       c = Math.cos(a),
       s = Math.sin(a),
-      ratio = isEcho
-        ? stats.echoRatio *
-          (state.overdriveTimer > 0 ? GameBalance.overdrive.echoDamageMultiplier : 1)
-        : 1;
+      damage = EquipmentCore.calculateProjectileDamage(p, {
+        isEcho,
+        echoRatio: stats.echoRatio,
+        overdriveEchoMultiplier:
+          state.overdriveTimer > 0 ? GameBalance.overdrive.echoDamageMultiplier : 1,
+      });
     bullets.push({
       x: owner.x + c * 22,
       y: owner.y + s * 22,
       px: owner.x,
       py: owner.y,
-      vx: c * profile.speed,
-      vy: s * profile.speed,
-      r: profile.size,
-      life: 1.4,
+      vx: c * p.speed,
+      vy: s * p.speed,
+      r: p.size,
+      life: p.range / Math.max(1, p.speed),
       team: "player",
       echo: isEcho,
-      damage: profile.damage * ratio,
-      pierce: profile.pierce,
+      damage,
+      pierce: p.pierce,
+      coreDamageMultiplier: p.coreDamageMultiplier,
+      visualProfile: { ...p.visualProfile },
+      hitIds: [],
     });
   }
   if (!isEcho && record)
-    state.current.events.push({ t: state.elapsed, type: "shot", profile: { ...profile } });
+    state.current.events.push({
+      t: state.elapsed,
+      type: "shot",
+      angle: p.a,
+      weaponId: p.weaponId,
+      profile: EquipmentCore.snapshotFireProfile(p),
+    });
   (isEcho ? sfx.echo : sfx.shot)();
   burst(
-    owner.x + Math.cos(profile.a) * 22,
-    owner.y + Math.sin(profile.a) * 22,
-    isEcho ? "#45f5e9" : "#ffd39a",
+    owner.x + Math.cos(p.a) * 22,
+    owner.y + Math.sin(p.a) * 22,
+    isEcho ? "#45f5e9" : p.visualProfile.color,
     5,
     100
   );
@@ -696,7 +718,23 @@ function tryDash(p, record) {
 function hurtPlayer(raw, from) {
   if (player.invuln > 0) return;
   const dmg = raw * diff.damageTaken;
-  if (player.hp - dmg <= 0 && stats.emergency && !state.emergencyUsed && state.history.length) {
+  const damageResult = EquipmentCore.applyShieldDamage(player.shield || 0, player.hp, dmg);
+  if (damageResult.absorbed > 0) {
+    player.shield = damageResult.shield;
+    burst(player.x, player.y, "#66cfff", 12, 150);
+    tone("sine", 620, 0.09, 0.035, -180);
+  }
+  const hpDamage = player.hp - damageResult.hp;
+  if (hpDamage <= 0) {
+    player.invuln = 0.2;
+    return;
+  }
+  if (
+    player.hp - hpDamage <= 0 &&
+    stats.emergency &&
+    !state.emergencyUsed &&
+    state.history.length
+  ) {
     const h = state.history[0];
     player.x = h.x;
     player.y = h.y;
@@ -708,8 +746,8 @@ function hurtPlayer(raw, from) {
     tone("sine", 250, 0.5, 0.08, 700);
     return;
   }
-  player.hp -= dmg;
-  state.damageTaken += dmg;
+  player.hp -= hpDamage;
+  state.damageTaken += hpDamage;
   state.noHit = false;
   player.invuln = 0.45;
   player.hurtAnim = 1;
@@ -723,7 +761,14 @@ function hurtPlayer(raw, from) {
 
 // ── Echo 기록과 재생 ───────────────────────────────────────────────────────
 function beginRecording() {
-  state.current = { samples: [], events: [], alive: true, duration: 0, weapon: stats.weapon };
+  state.current = {
+    samples: [],
+    events: [],
+    alive: true,
+    duration: 0,
+    weapon: stats.weapon,
+    weaponId: save.loadout.weapon,
+  };
   state.nextSample = 0;
   recordSnapshot(true);
 }
@@ -754,12 +799,14 @@ function makeEcho(rec, i) {
     animTime: 0,
     motion: 0,
     recoil: 0,
+    lastProfile: null,
+    weaponId: rec.weaponId || null,
   };
 }
 function updateEchoes(dt) {
   for (const e of echoes) {
     const t = state.elapsed,
-      extra = stats.extended ? 2 : 0;
+      extra = stats.memorySeconds;
     if (t > e.rec.duration + extra) {
       e.finished = true;
       continue;
@@ -778,14 +825,21 @@ function updateEchoes(dt) {
       const due = EchoCore.collectDueEvents(e.rec.events, e.eventIndex, t);
       e.eventIndex = due.nextIndex;
       for (const ev of due.events) {
-        if (ev.type === "shot") fireWeapon(e, true, ev.profile, false);
-        else if (ev.type === "dash") burst(e.x, e.y, "#45f5e9", 7, 80);
+        if (ev.type === "shot") {
+          e.lastProfile = EquipmentCore.snapshotFireProfile({
+            ...(ev.profile || {}),
+            angle: ev.angle ?? ev.profile?.a ?? e.angle,
+          });
+          e.weaponId = e.lastProfile.weaponId;
+          fireWeapon(e, true, e.lastProfile, false);
+        } else if (ev.type === "dash") burst(e.x, e.y, "#45f5e9", 7, 80);
       }
-    } else if (stats.extended) {
+    } else if (extra > 0) {
       e.extendedCd -= dt;
       if (e.extendedCd <= 0) {
-        fireWeapon(e, true, makeShotProfile(e.angle), false);
-        e.extendedCd = 0.22;
+        const supportProfile = e.lastProfile || makeShotProfile(e.angle);
+        fireWeapon(e, true, { ...supportProfile, angle: e.angle, a: e.angle }, false);
+        e.extendedCd = supportProfile.fireInterval || 0.22;
       }
     }
     if (Math.random() < 0.3) trail(e, "#45f5e9");
@@ -925,33 +979,42 @@ function updateBullets(dt) {
     }
     if (!gone && b.team === "player") {
       for (const e of enemies)
-        if (e.alive && hit(b, e)) {
+        if (e.alive && !b.hitIds?.includes(e) && hit(b, e)) {
+          b.hitIds?.push(e);
           damageEnemy(e, b.damage, b.echo);
-          if (b.pierce-- <= 0) gone = true;
+          const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "enemy");
+          b.pierce = impact.pierce;
+          gone = impact.removed;
           break;
         }
       if (!gone)
         for (const s of switches)
-          if (hit(b, s)) {
+          if (!b.hitIds?.includes(s) && hit(b, s)) {
+            b.hitIds?.push(s);
             s.charge = Math.min(100, s.charge + 16);
             s.lastHit = state.elapsed;
-            if (b.pierce-- <= 0) gone = true;
+            const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "relay");
+            b.pierce = impact.pierce;
+            gone = impact.removed;
             break;
           }
       if (!gone)
         for (const r of relays)
-          if (hit(b, r)) {
+          if (!b.hitIds?.includes(r) && hit(b, r)) {
+            b.hitIds?.push(r);
             r.charge = Math.min(
               stage.objective.relayChargeMax,
               r.charge + stage.objective.relayGain
             );
             r.lastHit = state.elapsed;
-            if (b.pierce-- <= 0) gone = true;
+            const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "relay");
+            b.pierce = impact.pierce;
+            gone = impact.removed;
             break;
           }
       if (!gone && anchorActive() && hit(b, core)) {
         if (state.shieldTimer > 0) {
-          damageCore(b.damage, b.echo);
+          damageCore(b.damage * (b.coreDamageMultiplier || 1), b.echo);
           burst(b.x, b.y, "#fff", 6, 85);
         } else spark(b.x, b.y, "#69a6ff");
         gone = true;
@@ -1008,9 +1071,9 @@ function updatePickups(dt) {
     pickup.life -= dt;
     pickup.phase += dt * 5;
     const d = Math.hypot(player.x - pickup.x, player.y - pickup.y);
-    if (d < GameBalance.overdrive.pickupRadius) {
+    if (d < stats.shardRadius) {
       const n = norm(player.x - pickup.x, player.y - pickup.y);
-      const speed = 90 + (GameBalance.overdrive.pickupRadius - d) * 4;
+      const speed = 90 + (stats.shardRadius - d) * 4;
       pickup.x += n.x * speed * dt;
       pickup.y += n.y * speed * dt;
     }
@@ -1183,12 +1246,13 @@ function tryTemporalOverload() {
         lastOverloadAt: state.lastOverload,
         shieldOpen: state.shieldTimer > 0,
       },
-      GameBalance.overload
+      { ...GameBalance.overload, cooldown: stats.overloadCooldown }
     )
   )
     return;
   const bonus =
     GameBalance.overload.bonusDamage *
+    stats.overloadDamageMultiplier *
     (state.overdriveTimer > 0 ? GameBalance.overload.overdriveBonus : 1);
   core.hp = Math.max(0, core.hp - bonus);
   state.coreDamage += bonus;
@@ -1269,6 +1333,7 @@ function updateParticles(dt) {
 }
 function resetLoopWorld() {
   player = makePlayer();
+  state.shieldRefresh = false;
   bullets = [];
   particles = [];
   pickups = [];
@@ -1325,6 +1390,7 @@ function finishRoomTransition() {
   state.roomCleared = advanced.roomCleared;
   state.roomTransition = 0;
   state.loop = advanced.loop;
+  state.roomRewardResolved = false;
   recordings = advanced.recordings;
   echoes = advanced.echoes;
   bullets = advanced.bullets;
@@ -1343,7 +1409,9 @@ function updateRoomProgression() {
     state.score += 300;
     burst(encounter.exit.x, encounter.exit.y, "#45f5e9", 24, 170);
     tone("sine", 460, 0.25, 0.05, 380);
+    offerRoomEquipment(encounter);
   }
+  if (state.mode !== "playing") return;
   if (state.roomCleared && hit(player, encounter.exit)) enterNextRoom();
 }
 function startStage() {
@@ -1396,6 +1464,7 @@ function completeLoop(keep, reason = "override") {
 function nextLoop() {
   state.loop++;
   state.mode = "playing";
+  state.shieldRefresh = true;
   screens.transition.classList.add("hidden");
   resetLoopWorld();
   last = performance.now();
@@ -1449,7 +1518,7 @@ function endStage(win) {
   $("result-rescue").textContent = shuttle ? `${shuttle.survivors} / 12` : "—";
   $("result-combo").textContent = state.bestCombo;
   $("result-overloads").textContent = state.overloads;
-  $("result-next").textContent = win ? "ANALYZE CRYSTAL" : "RETRY";
+  $("result-next").textContent = win ? "RECOVER EQUIPMENT" : "RETRY";
   if (win) {
     const old = save.stages[stage.id] || {};
     save.stages[stage.id] = {
@@ -1491,7 +1560,7 @@ function renderDifficulties() {
 function showStageSelect() {
   showScreen("stage");
   $("campaign-status").textContent =
-    `${DIFFICULTIES[save.difficulty].name} // UPGRADES ${save.upgrades.length}/9`;
+    `${DIFFICULTIES[save.difficulty].name} // UPGRADES ${save.upgrades.length}/9 // EQUIPMENT ${save.equipmentOwned.length}/9`;
   $("stage-cards").innerHTML = STAGES.map((s) => {
     const locked = s.locked || s.number > save.unlockedStage,
       r = save.stages[s.id];
@@ -1514,8 +1583,16 @@ function showBriefing(s) {
 }
 function upgradeCandidates() {
   const owned = new Set(save.upgrades),
-    blocked = new Set(UPGRADES.filter((u) => owned.has(u.id)).flatMap((u) => u.incompatible));
-  return UPGRADES.filter((u) => !owned.has(u.id) && !blocked.has(u.id))
+    blocked = new Set(UPGRADES.filter((u) => owned.has(u.id)).flatMap((u) => u.incompatible)),
+    blockedByEquipment = new Set(
+      Object.values(save.loadout)
+        .map(equipmentItem)
+        .filter(Boolean)
+        .flatMap((item) => item.incompatibleUpgrades || [])
+    );
+  return UPGRADES.filter(
+    (u) => !owned.has(u.id) && !blocked.has(u.id) && !blockedByEquipment.has(u.id)
+  )
     .sort(() => Math.random() - 0.5)
     .slice(0, 3);
 }
@@ -1533,12 +1610,109 @@ function showUpgrades() {
     )
     .join("");
 }
+function equipmentItem(id) {
+  return EquipmentData.items.find((item) => item.id === id) || null;
+}
+function equipmentCandidates() {
+  return EquipmentCore.getEquipmentCandidates({
+    items: EquipmentData.items,
+    loadout: save.loadout,
+    ownedItems: save.equipmentOwned,
+    upgrades: save.upgrades,
+    count: EquipmentData.rewards.candidateCount,
+    rarityWeights: EquipmentData.rarityWeights,
+    rng: Math.random,
+  });
+}
+function offerRoomEquipment(encounter) {
+  if (state.roomRewardResolved) return;
+  state.roomRewardResolved = true;
+  if (
+    EquipmentCore.shouldOfferEquipmentReward(
+      encounter.objective,
+      EquipmentData.rewards,
+      Math.random
+    )
+  )
+    showEquipmentSelection("room");
+}
+function equipmentCard(item) {
+  const current = equipmentItem(save.loadout[item.slot]);
+  const validation = EquipmentCore.validateLoadout(
+    { ...save.loadout, [item.slot]: item.id },
+    EquipmentData,
+    save.upgrades
+  );
+  const blocked = !validation.valid;
+  const slotName = item.slot === "relic" ? "TEMPORAL RELIC" : item.slot.toUpperCase();
+  return `<button class="card equipment-card rarity-${item.rarity}" data-equipment="${item.id}" ${blocked ? "disabled" : ""}><span class="equip-icon" aria-hidden="true">${item.visual.icon}</span><span class="num">${slotName} // ${item.rarity.toUpperCase()}</span><h3>${item.name}</h3><p>${item.description}</p><p class="statline">${item.statSummary.join(" · ")}</p><p class="current">CURRENT: ${current?.name || "NONE"}</p><p class="pros">+ ${item.advantages.join(" · ")}</p><p class="cons">- ${item.drawbacks.join(" · ")}</p>${blocked ? `<p class="blocked-reason">INCOMPATIBLE: ${validation.errors.join(", ")}</p>` : ""}</button>`;
+}
+function showEquipmentSelection(nextFlow) {
+  const candidates = equipmentCandidates();
+  pendingEquipmentFlow = nextFlow;
+  equipmentSelectionLocked = false;
+  if (!candidates.length) {
+    if (nextFlow === "room") pendingEquipmentFlow = null;
+    else finishEquipmentSelection();
+    return false;
+  }
+  hideAll();
+  state.mode = "equipmentSelect";
+  screens.equipment.classList.remove("hidden");
+  $("equipment-kicker").textContent =
+    nextFlow === "room" ? "ROOM CACHE // TEMPORAL EQUIPMENT" : "ANCHOR CACHE // TEMPORAL EQUIPMENT";
+  $("equipment-cards").innerHTML = candidates.map(equipmentCard).join("");
+  requestAnimationFrame(() => $("equipment-cards").querySelector("button:not(:disabled)")?.focus());
+  return true;
+}
+function finishEquipmentSelection() {
+  const nextFlow = pendingEquipmentFlow;
+  pendingEquipmentFlow = null;
+  equipmentSelectionLocked = false;
+  if (nextFlow === "room") {
+    hideAll();
+    state.mode = "playing";
+    ui.hud.classList.remove("hidden");
+    ui.muteGame.classList.remove("hidden");
+    last = performance.now();
+    accumulator = 0;
+  } else if (nextFlow === "upgrade") showUpgrades();
+  else showStageSelect();
+}
+function selectEquipment(itemId) {
+  if (equipmentSelectionLocked || state.mode !== "equipmentSelect") return;
+  const item = equipmentItem(itemId);
+  if (!item) return;
+  const previousStats = stats;
+  const claim = EquipmentCore.claimEquipmentReward({
+    loadout: save.loadout,
+    ownedItems: save.equipmentOwned,
+    itemId,
+    equipmentData: EquipmentData,
+    upgrades: save.upgrades,
+  });
+  if (!claim.selected) return;
+  equipmentSelectionLocked = true;
+  save.loadout = claim.loadout;
+  save.equipmentOwned = claim.ownedItems;
+  stats = buildStats();
+  if (player) {
+    player.hp = Math.max(1, Math.min(stats.maxHp, player.hp));
+    player.dashStock = Math.min(stats.dashCharges, player.dashStock);
+    if (stats.maxHp < previousStats.maxHp) burst(player.x, player.y, "#c48bff", 12, 110);
+  }
+  persist();
+  finishEquipmentSelection();
+}
 function updateHUD() {
   ui.stage.textContent = `S${stage.number} // ${stage.name}`;
   ui.loop.textContent = `${state.loop} / ${diff.maxLoops}`;
   ui.time.textContent = Math.max(0, diff.loopTime - state.elapsed).toFixed(1);
   ui.echoes.textContent = echoes.length;
   ui.hp.style.width = `${100 * clamp(player.hp / stats.maxHp, 0, 1)}%`;
+  ui.shieldHud.classList.toggle("hidden", stats.loopShield <= 0);
+  ui.shield.style.width = `${100 * clamp((player.shield || 0) / Math.max(1, stats.loopShield), 0, 1)}%`;
+  ui.shieldValue.textContent = Math.ceil(player.shield || 0);
   ui.dash.style.width = `${100 * (player.dashStock / stats.dashCharges)}%`;
   ui.overdrive.style.width = `${100 * clamp(state.overdriveGauge / GameBalance.overdrive.maxGauge, 0, 1)}%`;
   ui.overdriveLabel.textContent =
@@ -1547,6 +1721,12 @@ function updateHUD() {
       : "TEMPORAL OVERDRIVE";
   ui.core.style.width = `${anchorActive() ? (100 * core.hp) / core.maxHp : 0}%`;
   ui.score.textContent = Math.round(state.score);
+  const slotLabel = { weapon: "W", armor: "A", relic: "R" };
+  ui.loadout.innerHTML = Object.entries(save.loadout)
+    .map(
+      ([slot, id]) => `<span>${slotLabel[slot]} <b>${equipmentItem(id)?.name || "NONE"}</b></span>`
+    )
+    .join("");
   ui.shuttleHud.classList.toggle("hidden", !shuttle);
   if (shuttle) {
     ui.shuttle.style.width = `${(100 * shuttle.hp) / shuttle.maxHp}%`;
@@ -1798,6 +1978,9 @@ function renderActor(o, isEcho) {
   ctx.translate(o.x, o.y);
   const facing = Math.round(o.angle / (Math.PI / 4)) * (Math.PI / 4);
   const hurt = isEcho ? 0 : o.hurtAnim || 0;
+  const weaponId = isEcho ? o.weaponId : save.loadout.weapon;
+  const armorId = isEcho ? null : save.loadout.armor;
+  const relicId = save.loadout.relic;
   ctx.translate(Math.sin(hurt * 28) * hurt * 3, 0);
   ctx.rotate(facing);
   ctx.globalAlpha = isEcho ? 0.62 : 1;
@@ -1805,6 +1988,49 @@ function renderActor(o, isEcho) {
   ctx.shadowColor = isEcho ? "#45f5e9" : "#ffb45d";
   const suit = isEcho ? "#45f5e9" : hurt > 0.45 ? "#ff637b" : "#f5f8ff";
   const accent = isEcho ? "#77fff5" : "#ffab55";
+  if (!isEcho && armorId === "hunter-coat") {
+    ctx.fillStyle = "rgba(141,88,205,.72)";
+    ctx.beginPath();
+    ctx.moveTo(-6, -10);
+    ctx.lineTo(-28, -16);
+    ctx.lineTo(-24, 16);
+    ctx.lineTo(-6, 10);
+    ctx.closePath();
+    ctx.fill();
+  }
+  if (!isEcho && player.shield > 0) {
+    ctx.strokeStyle = "rgba(100,207,255,.75)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.arc(0, 0, o.r + 10, 0, 6.283);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (!isEcho && relicId === "paradox-ring") {
+    ctx.strokeStyle = "rgba(255,140,241,.55)";
+    ctx.lineWidth = 1.5;
+    for (const radius of [o.r + 15, o.r + 20]) {
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, state.elapsed, state.elapsed + 4.7);
+      ctx.stroke();
+    }
+  }
+  if (isEcho && relicId === "echo-lens") {
+    ctx.strokeStyle = "rgba(135,255,248,.75)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, o.r + 11, 0, 6.283);
+    ctx.stroke();
+  }
+  if (isEcho && relicId === "memory-core" && state.elapsed > o.rec.duration) {
+    ctx.strokeStyle = "rgba(126,245,255,.7)";
+    ctx.setLineDash([3, 5]);
+    ctx.beginPath();
+    ctx.arc(0, 0, o.r + 15 + Math.sin(state.elapsed * 8) * 3, 0, 6.283);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
   if (state.overdriveTimer > 0) {
     ctx.strokeStyle = isEcho ? "rgba(133,255,246,.5)" : "rgba(255,224,112,.75)";
     ctx.lineWidth = 2;
@@ -1836,6 +2062,11 @@ function renderActor(o, isEcho) {
   ctx.fill();
   ctx.fillStyle = isEcho ? "rgba(8,44,50,.7)" : "#26334a";
   ctx.fillRect(-6 - bob, -7, 10, 14);
+  if (!isEcho && armorId === "vector-harness") {
+    ctx.fillStyle = "#69fff2";
+    ctx.fillRect(-13, -9, 5, 5);
+    ctx.fillRect(-13, 4, 5, 5);
+  }
 
   // 머리와 바이저: 몸통 앞쪽에 배치해 바라보는 방향을 읽게 한다.
   ctx.fillStyle = accent;
@@ -1856,10 +2087,13 @@ function renderActor(o, isEcho) {
   ctx.moveTo(1, 7);
   ctx.lineTo(13 - recoil, 3);
   ctx.stroke();
-  ctx.fillStyle = isEcho ? "#77fff5" : "#d8e2ed";
-  ctx.fillRect(9 - recoil, -4, 25, 8);
+  const gunColor = isEcho ? "#77fff5" : equipmentItem(weaponId)?.visual.color || "#d8e2ed";
+  const gunLength = weaponId === "pulse-rifle" ? 34 : weaponId === "breach-shotgun" ? 19 : 25;
+  const gunWidth = weaponId === "breach-shotgun" ? 11 : 8;
+  ctx.fillStyle = gunColor;
+  ctx.fillRect(9 - recoil, -gunWidth / 2, gunLength, gunWidth);
   ctx.fillStyle = isEcho ? "#d5fffc" : "#fff1d7";
-  ctx.fillRect(29 - recoil, -2, 8, 4);
+  ctx.fillRect(9 + gunLength - 5 - recoil, -2, 8, 4);
   ctx.restore();
   if (!isEcho && state.charging) {
     ctx.strokeStyle = "#ffe18a";
@@ -1942,6 +2176,13 @@ function renderExplosions() {
   }
 }
 function renderPickups() {
+  if (save.loadout.armor === "hunter-coat") {
+    ctx.strokeStyle = "rgba(196,139,255,.12)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, stats.shardRadius, 0, 6.283);
+    ctx.stroke();
+  }
   for (const pickup of pickups) {
     ctx.save();
     ctx.translate(pickup.x, pickup.y);
@@ -2040,7 +2281,12 @@ function renderAnchorBrute(e, color, pulse) {
 function renderBullets() {
   ctx.lineCap = "round";
   for (const b of bullets) {
-    ctx.strokeStyle = b.team === "enemy" ? "#ff405f" : b.echo ? "rgba(69,245,233,.7)" : "#ffe0a6";
+    ctx.strokeStyle =
+      b.team === "enemy"
+        ? "#ff405f"
+        : b.echo
+          ? "rgba(69,245,233,.7)"
+          : b.visualProfile?.color || "#ffe0a6";
     ctx.lineWidth = b.r * 1.4;
     ctx.beginPath();
     ctx.moveTo(b.px, b.py);
@@ -2161,11 +2407,14 @@ function bindUI() {
   };
   $("keep-record").onclick = () => completeLoop(true);
   $("discard-record").onclick = () => completeLoop(false);
-  $("result-map").onclick = showStageSelect;
+  $("result-map").onclick = () => {
+    if (state.mode === "result" && core.hp <= 0)
+      showEquipmentSelection(state.firstClear ? "upgrade" : "stage");
+    else showStageSelect();
+  };
   $("result-next").onclick = () => {
-    if (state.finalRank && state.mode === "result" && core.hp <= 0 && state.firstClear)
-      showUpgrades();
-    else if (core.hp <= 0) showStageSelect();
+    if (state.finalRank && state.mode === "result" && core.hp <= 0)
+      showEquipmentSelection(state.firstClear ? "upgrade" : "stage");
     else startStage();
   };
   ui.muteTitle.onclick = toggleMute;
@@ -2192,6 +2441,15 @@ function bindUI() {
     save.upgrades.push(b.dataset.upgrade);
     persist();
     showStageSelect();
+  };
+  $("equipment-cards").onclick = (e) => {
+    const button = e.target.closest("[data-equipment]");
+    if (button && !button.disabled) selectEquipment(button.dataset.equipment);
+  };
+  $("equipment-skip").onclick = () => {
+    if (equipmentSelectionLocked || state.mode !== "equipmentSelect") return;
+    equipmentSelectionLocked = true;
+    finishEquipmentSelection();
   };
 }
 function init() {

@@ -189,19 +189,24 @@
     );
     const result = [];
     while (pool.length && result.length < count) {
-      const total = pool.reduce(
-        (sum, item) => sum + Math.max(0, rarityWeights[item.rarity] || 0),
+      const availableRarities = [...new Set(pool.map((item) => item.rarity))];
+      const total = availableRarities.reduce(
+        (sum, rarity) => sum + Math.max(0, rarityWeights[rarity] || 0),
         0
       );
-      let selectedIndex = 0;
+      let selectedRarity = availableRarities[0];
+      let chosen;
       if (total > 0) {
         let roll = clamp(rng(), 0, 0.999999999) * total;
-        selectedIndex = pool.findIndex((item) => {
-          roll -= Math.max(0, rarityWeights[item.rarity] || 0);
+        selectedRarity = availableRarities.find((rarity) => {
+          roll -= Math.max(0, rarityWeights[rarity] || 0);
           return roll < 0;
         });
-        if (selectedIndex < 0) selectedIndex = pool.length - 1;
-      } else selectedIndex = Math.floor(clamp(rng(), 0, 0.999999999) * pool.length);
+        if (!selectedRarity) selectedRarity = availableRarities.at(-1);
+        const rarityPool = pool.filter((item) => item.rarity === selectedRarity);
+        chosen = rarityPool[Math.floor(clamp(rng(), 0, 0.999999999) * rarityPool.length)];
+      } else chosen = pool[Math.floor(clamp(rng(), 0, 0.999999999) * pool.length)];
+      const selectedIndex = pool.indexOf(chosen);
       result.push(pool.splice(selectedIndex, 1)[0]);
     }
     return result;

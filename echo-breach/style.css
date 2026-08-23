@@ -258,9 +258,38 @@ button:disabled {
 }
 .rarity-rare {
   border-color: #8c6cff;
+  border-style: dashed;
 }
 .rarity-epic {
   border-color: #ff6ed1;
+}
+.rarity-common {
+  border-left: 4px solid #9baabd;
+}
+.rarity-legendary {
+  border: 3px double #ff6ed1;
+}
+.equipment-card .equip-icon {
+  float: right;
+  color: var(--cyan);
+  font:
+    900 25px ui-monospace,
+    monospace;
+}
+.equipment-card .current {
+  color: #ffd18e;
+}
+.equipment-card .pros {
+  color: #85f3d6;
+}
+.equipment-card .cons,
+.equipment-card .blocked-reason {
+  color: #ff93a5;
+}
+.equipment-card:focus-visible,
+button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
 }
 .statline {
   color: var(--cyan) !important;
@@ -334,6 +363,10 @@ button:disabled {
 .bar.dash i {
   background: var(--cyan);
 }
+.bar.shield i {
+  background: linear-gradient(90deg, #488cff, #83e5ff);
+  box-shadow: 0 0 12px #58bcff;
+}
 .bar.core i {
   background: var(--red);
 }
@@ -382,6 +415,22 @@ button:disabled {
     600 12px/1.6 ui-monospace,
     monospace;
   pointer-events: none;
+}
+#loadout-hud {
+  position: absolute;
+  left: 26px;
+  top: 124px;
+  display: grid;
+  gap: 3px;
+  color: #71839c;
+  font:
+    700 9px/1.4 ui-monospace,
+    monospace;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+#loadout-hud b {
+  color: #c8d8e7;
 }
 .corner-button {
   position: absolute;
