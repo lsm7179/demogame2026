@@ -18,13 +18,12 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050711'/%3E%3Cpath d='M13 16h38v9H24v7h22v8H24v7h27v9H13z' fill='%2345f5e9'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style.css?v=0.7.0-hud" />
   </head>
   <body>
     <main id="game-shell">
       <canvas id="game" aria-label="ECHO BREACH 전투 화면"></canvas>
       <div id="hud" class="hidden">
-        <div id="stage-hud">S1 // AWAKENING</div>
         <section class="hud-top">
           <div><span class="label">LOOP</span><strong id="loop-value">1 / 5</strong></div>
           <div class="timer">
@@ -32,7 +31,8 @@
           </div>
           <div><span class="label">ECHOES</span><strong id="echo-value">0</strong></div>
         </section>
-        <section class="bars left-bars">
+        <section class="hud-vitals" aria-label="생존 상태">
+          <div id="stage-hud">S1 // AWAKENING</div>
           <div>
             <span>ECHO-07 INTEGRITY</span>
             <div class="bar"><i id="hp-bar"></i></div>
@@ -45,24 +45,26 @@
             <span>DASH</span>
             <div class="bar dash"><i id="dash-bar"></i></div>
           </div>
-          <div>
-            <span id="overdrive-label">TEMPORAL OVERDRIVE</span>
-            <div class="bar"><i id="overdrive-bar"></i></div>
-          </div>
           <div id="shuttle-hud" class="hidden">
             <span>RESCUE SHUTTLE <b id="survivor-value">12 / 12</b></span>
             <div class="bar shuttle"><i id="shuttle-bar"></i></div>
           </div>
         </section>
-        <section class="bars right-bars">
+        <section class="hud-anchor">
           <div>
             <span>CHRONO ANCHOR</span>
             <div class="bar core"><i id="core-bar"></i></div>
           </div>
           <div class="score"><span>SCORE</span><strong id="score-value">0</strong></div>
         </section>
-        <div id="objective">RECORD A FIRING PATTERN</div>
-        <div id="tip"></div>
+        <section class="hud-overdrive">
+          <span id="overdrive-label">TEMPORAL OVERDRIVE</span>
+          <div class="bar overdrive"><i id="overdrive-bar"></i></div>
+        </section>
+        <div class="hud-notices">
+          <div id="objective">ADVANCE</div>
+          <div id="tip"></div>
+        </div>
         <div id="loadout-hud" aria-label="현재 장비"></div>
       </div>
       <section id="title-screen" class="overlay">
@@ -198,6 +200,7 @@
     <script src="temporal-core.js"></script>
     <script src="collision-core.js"></script>
     <script src="world-core.js"></script>
+    <script src="ui-core.js"></script>
     <script src="echo-core.js"></script>
     <script src="equipment-data.js"></script>
     <script src="equipment-core.js"></script>

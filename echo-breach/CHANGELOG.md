@@ -2,6 +2,20 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.7.0] - 2026-08-23
+
+### Added
+
+- Added a responsive combat HUD layout with equipment icons, tooltips, compact objective alerts, and dedicated survival, Anchor, and Overdrive regions.
+- Added an enlarged tactical minimap with distinct player, Echo, enemy, relay, and Anchor markers plus offscreen objective guidance.
+- Added deterministic floor contamination, cracks, wall depth, and restrained temporal distortion for key combat events.
+- Added data-driven stage card colors, silhouettes, route labels, and locked-sector previews.
+- Added pure minimap, offscreen-marker, and objective-alert regression tests.
+
+### Accessibility
+
+- Reduced camera shake and strong temporal distortion when `prefers-reduced-motion` is enabled.
+
 ## [0.6.0] - 2026-08-23
 
 ### Added

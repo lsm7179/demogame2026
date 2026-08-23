@@ -78,6 +78,11 @@ const STAGES = [
       "Chrono Anchor를 파괴해야 이 구역의 시간이 흐른다.",
     ],
     arena: { type: "radial", tint: "#07101d" },
+    visual: {
+      color: "#45f5e9",
+      motif: "◉",
+      preview: "linear-gradient(145deg,#0c3340,#07101d 62%)",
+    },
     difficulty: { coreHp: 650 },
     objective: ObjectiveData.awakening,
     waves: [["chaser", "shooter", "blocker"]],
@@ -95,6 +100,11 @@ const STAGES = [
       "Echo의 사격으로 스위치를 유지하고 열린 통로를 돌파하라.",
     ],
     arena: { type: "split", tint: "#07131a" },
+    visual: {
+      color: "#73a7ff",
+      motif: "⇆",
+      preview: "linear-gradient(145deg,#13284b,#07131a 62%)",
+    },
     difficulty: { coreHp: 720 },
     objective: ObjectiveData["split-current"],
     waves: [["shooter", "chaser", "blocker", "shooter"]],
@@ -112,6 +122,11 @@ const STAGES = [
       "Echo에게 호위 사격을 남기고 Anchor를 공략하라.",
     ],
     arena: { type: "rescue", tint: "#100b19" },
+    visual: {
+      color: "#cf84ff",
+      motif: "✦",
+      preview: "linear-gradient(145deg,#321844,#100b19 62%)",
+    },
     difficulty: { coreHp: 760 },
     objective: ObjectiveData["rescue-window"],
     waves: [["chaser", "shooter", "chaser", "blocker"]],
@@ -126,6 +141,11 @@ const STAGES = [
     subtitle: "Hostile Memory Vault",
     briefing: ["적대적 기록 신호 감지."],
     arena: { type: "locked" },
+    visual: {
+      color: "#ff607c",
+      motif: "◈",
+      preview: "linear-gradient(145deg,#361322,#0c0710 62%)",
+    },
     difficulty: {},
     objective: { type: "future" },
     waves: [],
@@ -141,6 +161,11 @@ const STAGES = [
     subtitle: "Central AI Core",
     briefing: ["중앙 AI 접속 대기."],
     arena: { type: "locked" },
+    visual: {
+      color: "#ffd36f",
+      motif: "⌬",
+      preview: "linear-gradient(145deg,#352b14,#0d0a05 62%)",
+    },
     difficulty: {},
     objective: { type: "future" },
     waves: [],
@@ -305,6 +330,7 @@ let raf = 0,
   shake = 0,
   flash = 0,
   hitStop = 0,
+  timeWarp = 0,
   transitionTimer = 0,
   audio = null,
   muted = save.muted,
@@ -511,6 +537,9 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v)),
       y = a.y - b.y;
     return x * x + y * y;
   };
+function reducedMotion() {
+  return matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 function norm(x, y) {
   const l = Math.hypot(x, y) || 1;
   return { x: x / l, y: y / l };
@@ -1117,6 +1146,7 @@ function collectPickup(pickup) {
   if (activated) {
     tone("sawtooth", 210, 0.6, 0.08, 760);
     shake = 7;
+    timeWarp = 0.7;
   }
 }
 function updatePickups(dt) {
@@ -1264,6 +1294,7 @@ function updateObjectives(dt) {
       state.score += 250;
       sfx.relay();
       burst(r.x, r.y, "#b88cff", 20, 140);
+      timeWarp = Math.max(timeWarp, 0.28);
     }
   }
   if (
@@ -1275,6 +1306,7 @@ function updateObjectives(dt) {
     state.score += 500 + echoes.length * 100;
     sfx.shield();
     shake = 9;
+    timeWarp = 0.45;
   }
   state.shieldTimer = Math.max(0, state.shieldTimer - dt);
 }
@@ -1333,6 +1365,7 @@ function updateAnchorPhase() {
     burst(core.x, core.y, phase === "critical" ? "#ffdf70" : "#ff5570", 26, 230);
     tone("sawtooth", phase === "critical" ? 120 : 190, 0.32, 0.07, -60);
     shake = phase === "critical" ? 12 : 7;
+    timeWarp = phase === "critical" ? 0.58 : 0.35;
   }
 }
 function collapseAnchor() {
@@ -1341,6 +1374,7 @@ function collapseAnchor() {
   state.anchorPhase = "collapsed";
   hitStop = 0.12;
   shake = 18;
+  timeWarp = 0.9;
   echoes.forEach((echo) => (echo.finished = true));
   for (let i = 0; i < 4; i++)
     setTimeout(() => burst(core.x, core.y, i % 2 ? "#fff" : "#ff315b", 28, 260 + i * 40), i * 55);
@@ -1532,6 +1566,7 @@ function nextLoop() {
   state.shieldRefresh = true;
   screens.transition.classList.add("hidden");
   resetLoopWorld();
+  timeWarp = 0.65;
   last = performance.now();
 }
 function calculateRank(win) {
@@ -1628,8 +1663,9 @@ function showStageSelect() {
     `${DIFFICULTIES[save.difficulty].name} // UPGRADES ${save.upgrades.length}/9 // EQUIPMENT ${save.equipmentOwned.length}/9`;
   $("stage-cards").innerHTML = STAGES.map((s) => {
     const locked = s.locked || s.number > save.unlockedStage,
-      r = save.stages[s.id];
-    return `<button class="card ${locked ? "locked" : ""}" data-stage="${s.id}" ${locked ? "disabled" : ""}><span class="num">STAGE 0${s.number}</span>${r ? `<b class="rank">${r.rank}</b>` : ""}<h3>${s.name}</h3><p>${s.subtitle}</p><span class="tag">${locked ? "LOCKED" : s.objective.type.toUpperCase()}</span></button>`;
+      r = save.stages[s.id],
+      visual = s.visual || STAGES[0].visual;
+    return `<button class="card stage-card ${locked ? "locked" : ""}" style="--stage-color:${visual.color};--stage-preview:${visual.preview}" data-stage="${s.id}" ${locked ? "disabled" : ""}><span class="stage-motif" aria-hidden="true">${visual.motif}</span><span class="num">STAGE 0${s.number}</span>${r ? `<b class="rank">${r.rank}</b>` : ""}<h3>${s.name}</h3><p>${s.subtitle}</p><span class="stage-route">${s.number < 5 ? "NEXUS LINK " + String(s.number).padStart(2, "0") : "CENTRAL TERMINUS"}</span><span class="tag">${locked ? "ENCRYPTED // LOCKED" : s.objective.type.toUpperCase()}</span></button>`;
   }).join("");
 }
 function showBriefing(s) {
@@ -1787,11 +1823,17 @@ function updateHUD() {
       : "TEMPORAL OVERDRIVE";
   ui.core.style.width = `${anchorActive() ? (100 * core.hp) / core.maxHp : 0}%`;
   ui.score.textContent = Math.round(state.score);
-  const slotLabel = { weapon: "W", armor: "A", relic: "R" };
+  const slotMeta = {
+    weapon: { icon: "⌁", label: "WEAPON" },
+    armor: { icon: "⬡", label: "ARMOR" },
+    relic: { icon: "◈", label: "RELIC" },
+  };
   ui.loadout.innerHTML = Object.entries(save.loadout)
-    .map(
-      ([slot, id]) => `<span>${slotLabel[slot]} <b>${equipmentItem(id)?.name || "NONE"}</b></span>`
-    )
+    .map(([slot, id]) => {
+      const item = equipmentItem(id),
+        meta = slotMeta[slot];
+      return `<span class="loadout-slot" tabindex="0" data-tooltip="${item?.description || `${meta.label} 장비 없음`}"><i class="slot-icon" aria-hidden="true">${meta.icon}</i><span><small>${meta.label}</small><b>${item?.name || "NONE"}</b></span></span>`;
+    })
     .join("");
   ui.shuttleHud.classList.toggle("hidden", !shuttle);
   if (shuttle) {
@@ -1802,26 +1844,30 @@ function updateHUD() {
   const encounter = currentEncounter();
   const world = activeWorld();
   const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
-  ui.objective.textContent =
-    world && zone?.objective !== "anchor"
-      ? gate && !gate.open && player.x > 1250 && player.x < 2100
-        ? `${zone.name} — ECHO SWITCH OPENS THE SHORTCUT`
-        : `${zone?.name || "NEXUS"} — PUSH DEEPER // ECHOES HOLD THE REAR`
-      : encounter && encounter.objective !== "anchor"
-        ? state.roomCleared
-          ? "ROOM CLEAR — REACH THE EXIT"
-          : `${encounter.name} — ELIMINATE HOSTILES`
-        : state.shieldTimer > 0
-          ? `ANCHOR EXPOSED // ${state.shieldTimer.toFixed(1)}s`
-          : stage.number === 2 && gate && !gate.open
-            ? "KEEP SWITCH CHARGED — OPEN THE GATE"
-            : relays.some((r) => r.active)
-              ? `${relays.filter((r) => r.active).length} / ${objective.requiredRelays} RELAYS SYNCHRONIZED`
-              : stage.number === 3
-                ? "RECORD ESCORT FIRE — THEN ATTACK RELAYS"
-                : echoes.length
-                  ? "COORDINATE ALL THREE RELAYS"
-                  : "RECORD FIRE ON ONE RELAY";
+  ui.objective.textContent = world
+    ? UiCore.objectiveAlert({
+        zoneName: zone?.name,
+        anchor: zone?.objective === "anchor",
+        shieldOpen: state.shieldTimer > 0,
+        activeRelays: relays.filter((r) => r.active).length,
+        requiredRelays: objective.requiredRelays,
+        gateClosed: Boolean(gate && !gate.open && player.x > 1250 && player.x < 2100),
+      })
+    : encounter && encounter.objective !== "anchor"
+      ? state.roomCleared
+        ? "ROOM CLEAR — REACH THE EXIT"
+        : `${encounter.name} — ELIMINATE HOSTILES`
+      : state.shieldTimer > 0
+        ? `ANCHOR EXPOSED // ${state.shieldTimer.toFixed(1)}s`
+        : stage.number === 2 && gate && !gate.open
+          ? "KEEP SWITCH CHARGED — OPEN THE GATE"
+          : relays.some((r) => r.active)
+            ? `${relays.filter((r) => r.active).length} / ${objective.requiredRelays} RELAYS SYNCHRONIZED`
+            : stage.number === 3
+              ? "RECORD ESCORT FIRE — THEN ATTACK RELAYS"
+              : echoes.length
+                ? "COORDINATE ALL THREE RELAYS"
+                : "RECORD FIRE ON ONE RELAY";
   ui.tip.textContent =
     diff.id === "story"
       ? stage.number === 2
@@ -1854,9 +1900,13 @@ function resize() {
   ctx.setTransform(d, 0, 0, d, 0, 0);
 }
 function render() {
+  const motionScale = reducedMotion() ? 0.18 : 1;
   ctx.save();
   ctx.clearRect(0, 0, innerWidth, innerHeight);
-  ctx.translate(view.ox + (Math.random() - 0.5) * shake, view.oy + (Math.random() - 0.5) * shake);
+  ctx.translate(
+    view.ox + (Math.random() - 0.5) * shake * motionScale,
+    view.oy + (Math.random() - 0.5) * shake * motionScale
+  );
   ctx.scale(view.scale, view.scale);
   ctx.translate(-camera.x, -camera.y);
   renderArena();
@@ -1874,6 +1924,35 @@ function render() {
   }
   ctx.restore();
   renderWorldGuidance();
+  if (timeWarp > 0) {
+    const alpha = timeWarp * (reducedMotion() ? 0.08 : 0.2);
+    const gradient = ctx.createRadialGradient(
+      innerWidth / 2,
+      innerHeight / 2,
+      innerHeight * 0.12,
+      innerWidth / 2,
+      innerHeight / 2,
+      innerWidth * 0.65
+    );
+    gradient.addColorStop(0, "transparent");
+    gradient.addColorStop(0.72, `rgba(69,245,233,${alpha * 0.35})`);
+    gradient.addColorStop(1, `rgba(121,75,255,${alpha})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+    ctx.strokeStyle = `rgba(180,255,249,${alpha * 1.8})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(
+      innerWidth / 2,
+      innerHeight / 2,
+      innerWidth * (0.16 + (1 - timeWarp) * 0.35),
+      innerHeight * (0.12 + (1 - timeWarp) * 0.28),
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.stroke();
+  }
   if (state.mode === "roomTransition") {
     ctx.fillStyle = `rgba(3,8,18,${clamp(1 - state.roomTransition / 0.4, 0, 0.92)})`;
     ctx.fillRect(0, 0, innerWidth, innerHeight);
@@ -1900,6 +1979,7 @@ function render() {
   ctx.globalAlpha = 1;
   shake *= 0.82;
   flash *= 0.84;
+  timeWarp *= reducedMotion() ? 0.68 : 0.9;
 }
 function renderArena() {
   const size = worldSize();
@@ -1913,6 +1993,22 @@ function renderArena() {
     ctx.fillStyle = "rgba(166,220,237,.28)";
     ctx.font = "11px monospace";
     ctx.fillText(room.name, room.x + 13, room.y + 20);
+    const seed = (index + 1) * 137;
+    for (let i = 0; i < Math.max(4, Math.floor(room.w / 260)); i++) {
+      const x = room.x + 95 + ((seed + i * 251) % Math.max(120, room.w - 190));
+      const y = room.y + 90 + ((seed * 3 + i * 173) % Math.max(120, room.h - 180));
+      ctx.fillStyle = i % 3 ? "rgba(29,88,91,.10)" : "rgba(108,39,78,.11)";
+      ctx.beginPath();
+      ctx.ellipse(x, y, 35 + (i % 3) * 18, 12 + (i % 2) * 9, i * 0.7, 0, 6.283);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(115,167,194,.10)";
+      ctx.beginPath();
+      ctx.moveTo(x - 30, y);
+      ctx.lineTo(x - 8, y - 12);
+      ctx.lineTo(x + 7, y + 9);
+      ctx.lineTo(x + 32, y - 4);
+      ctx.stroke();
+    }
   }
   ctx.strokeStyle = "rgba(66,95,142,.12)";
   for (let x = 0; x < size.width; x += 48) {
@@ -1946,10 +2042,18 @@ function renderArena() {
     }
   }
   for (const w of walls) {
+    if (!w.open) {
+      ctx.fillStyle = "rgba(0,0,0,.38)";
+      ctx.fillRect(w.x + 9, w.y + 10, w.w, w.h);
+    }
     ctx.fillStyle = w.open ? "rgba(69,245,233,.08)" : "rgba(70,116,185,.45)";
     ctx.fillRect(w.x, w.y, w.w, w.h);
     if (!w.open) {
-      ctx.strokeStyle = "rgba(121,186,242,.35)";
+      ctx.strokeStyle = "rgba(151,207,247,.48)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(w.x + 1, w.y + 1, w.w - 2, w.h - 2);
+      ctx.strokeStyle = "rgba(121,186,242,.3)";
+      ctx.lineWidth = 1;
       ctx.beginPath();
       if (w.w > w.h) {
         for (let x = w.x + 10; x < w.x + w.w; x += 26) {
@@ -2412,49 +2516,81 @@ function renderCursor() {
 function renderWorldGuidance() {
   const world = activeWorld();
   if (!world || !player) return;
-  const map = { x: innerWidth - 218, y: innerHeight - 92, w: 190, h: 58 };
+  const viewport = { width: innerWidth, height: innerHeight };
+  const map = UiCore.getMinimapRect(viewport);
   ctx.save();
-  ctx.fillStyle = "rgba(3,10,20,.78)";
-  ctx.strokeStyle = "rgba(107,235,225,.38)";
+  ctx.fillStyle = "rgba(3,9,19,.9)";
+  ctx.strokeStyle = "rgba(107,235,225,.52)";
   ctx.lineWidth = 1;
   ctx.fillRect(map.x, map.y, map.w, map.h);
   ctx.strokeRect(map.x, map.y, map.w, map.h);
+  ctx.fillStyle = "rgba(201,238,243,.62)";
+  ctx.font = "700 9px monospace";
+  ctx.fillText("NEXUS TACTICAL MAP", map.x + 9, map.y + 13);
   for (const zone of world.zones) {
+    const topLeft = UiCore.projectToMinimap(zone, world, map);
     ctx.fillStyle = "rgba(80,133,161,.18)";
     ctx.fillRect(
-      map.x + (zone.x / world.width) * map.w,
-      map.y + (zone.y / world.height) * map.h,
+      topLeft.x,
+      topLeft.y,
       (zone.w / world.width) * map.w,
       (zone.h / world.height) * map.h
     );
   }
-  const mark = (entity, color, radius) => {
+  const mark = (entity, color, shape = "dot", radius = 3) => {
+    const point = UiCore.projectToMinimap(entity, world, map);
     ctx.fillStyle = color;
+    ctx.strokeStyle = color;
     ctx.beginPath();
-    ctx.arc(
-      map.x + (entity.x / world.width) * map.w,
-      map.y + (entity.y / world.height) * map.h,
-      radius,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
+    if (shape === "diamond") {
+      ctx.moveTo(point.x, point.y - radius);
+      ctx.lineTo(point.x + radius, point.y);
+      ctx.lineTo(point.x, point.y + radius);
+      ctx.lineTo(point.x - radius, point.y);
+      ctx.closePath();
+      ctx.fill();
+    } else if (shape === "ring") {
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
   };
-  mark(core, "#ff4968", 3.2);
-  for (const echo of echoes) if (!echo.finished) mark(echo, "#45f5e9", 2.2);
-  mark(player, "#ffb45d", 3);
+  for (const enemy of enemies) if (enemy.alive) mark(enemy, "rgba(255,75,103,.76)", "dot", 1.7);
+  for (const relay of relays)
+    mark(relay, relay.active ? "#7fffee" : "#a673ff", "ring", relay.active ? 4 : 3);
+  mark(core, "#ff4968", "diamond", 5);
+  for (const echo of echoes) if (!echo.finished) mark(echo, "#45f5e9", "ring", 3.4);
+  mark(player, "#ffb45d", "diamond", 4.4);
+
+  const target = core;
+  const targetScreen = WorldCore.worldToScreen(target, camera, view);
+  const targetMarker = UiCore.offscreenMarker(targetScreen, viewport, 28);
+  if (!targetMarker.visible) {
+    ctx.save();
+    ctx.translate(targetMarker.x, targetMarker.y);
+    ctx.rotate(targetMarker.angle);
+    ctx.fillStyle = "#ff5570";
+    ctx.beginPath();
+    ctx.moveTo(11, 0);
+    ctx.lineTo(-7, -6);
+    ctx.lineTo(-4, 0);
+    ctx.lineTo(-7, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
   for (const echo of echoes) {
     if (echo.finished) continue;
     const screen = WorldCore.worldToScreen(echo, camera, view);
-    if (screen.x >= 0 && screen.x <= innerWidth && screen.y >= 0 && screen.y <= innerHeight)
-      continue;
-    const x = clamp(screen.x, 18, innerWidth - 18);
-    const y = clamp(screen.y, 18, innerHeight - 18);
+    const marker = UiCore.offscreenMarker(screen, viewport);
+    if (marker.visible) continue;
     ctx.strokeStyle = "rgba(69,245,233,.72)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.arc(marker.x, marker.y, 6, 0, Math.PI * 2);
     ctx.stroke();
   }
   ctx.restore();

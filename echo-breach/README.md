@@ -91,6 +91,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `room-data.js`: Stage 2~3 방, 벽, 통로와 Stage 1 이전 구조의 회귀 데이터
 - `world-data.js`: Stage 1 연속 월드 크기, 구역, 벽, 적 웨이브, 스위치, 지름길과 Anchor 배치
 - `world-core.js`: 카메라 추적, 화면/월드 좌표 변환, 구역 판정과 루프 초기화 순수 함수
+- `ui-core.js`: 반응형 미니맵 배치, 월드 투영, 화면 밖 표식과 상황 알림 순수 함수
 - `collision-core.js`: 원형 액터의 축별 벽 슬라이딩과 고속 이동 충돌
 - `objective-data.js`: 릴레이 수·필요 수·위치·충전과 Anchor 목표
 - `temporal-core.js`: Shard, Overdrive, Anchor 단계와 Overload 순수 판정
@@ -107,5 +108,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 ## 알려진 제한사항과 다음 후보
 
 모바일 조작, 게임패드, 배경 음악, Stage 4 적 Echo, Stage 5 다부위 보스는 아직 없습니다. 실제 플레이 데이터에 따라 릴레이 감소율, Stage 2 스위치 유지량, Stage 3 탈출선 체력, 랭크 임계값을 조정해야 합니다.
+
+전투 HUD는 상단 시간선 정보, 좌측 하단 생존 상태, 하단 장비, 우측 하단 Overdrive, 우측 상단 전술 미니맵으로 분리됩니다. 미니맵은 플레이어·Echo·적·릴레이·Anchor를 형태와 색으로 함께 구분하며, 작은 화면에서는 HUD 크기와 간격을 축소합니다. 운영체제에서 동작 감소를 요청하면 화면 흔들림과 시간 왜곡이 완화됩니다.
 
 개발 및 출시 전 검증은 `DEVELOPMENT_CHECKLIST.md`, 현재 확인된 품질 상태는 `QA_REPORT.md`를 참고하세요.
