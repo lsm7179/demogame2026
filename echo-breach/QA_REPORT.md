@@ -1,6 +1,28 @@
 # ECHO BREACH QA 보고서
 
-검증일: 2026-08-17
+검증일: 2026-08-23
+
+## v0.5.0 장비 시스템 회귀
+
+- PASS: 장비 9종의 고유 ID, 슬롯, 희귀도, 필수 필드와 불변 데이터
+- PASS: 빈 loadout, 슬롯 교체, 잘못된 ID/슬롯 복구, 원본 불변성
+- PASS: 주입 RNG 후보 재현, 중복·소유·현재 장착·비호환 제외, 후보 부족/없음
+- PASS: 기본/Carbine, Shotgun 5발·32°, Rifle 관통 2와 최종 발사 프로필
+- PASS: Vest 보호막 우선 흡수, Harness 2충전 상한, Coat 체력·속도·Shard 반경
+- PASS: Lens 피해 순서, Memory 중복 3초 상한, Ring Overload 피해·쿨다운
+- PASS: Shotgun/Rifle Echo 프로필 깊은 스냅샷과 구형 이벤트 기본값
+- PASS: 저장 스키마 2→3 진행 보존, 장비 정규화와 중복 제거
+- PASS: 실제 브라우저에서 기본 무장 전투, 장비 후보 3개, 슬롯·희귀도·교체 정보, 선택 중 20.0초 정지, 장착 후 전투 복귀, 새로고침 후 loadout 복구
+- PASS: 실제 브라우저에서 Chrono Vest 선택 후 다음 루프 보호막 25, Room 2 진입과 Echo 생성, 콘솔 오류·경고 없음
+- PASS: 저장된 장비 loadout으로 Stage 2와 Stage 3 전투 진입, 게이트/탈출선 HUD 진행 및 콘솔 오류·경고 없음
+
+실제로 확인하지 않아 PASS로 기록하지 않은 항목:
+
+- Stage 1~3 장비 포함 완주와 Anchor 결과→장비→업그레이드 전체 수동 흐름
+- Pulse Rifle이 적·릴레이를 연속 관통하는 장면과 벽 정지 장면
+- Memory Core 연장 Echo와 Paradox Ring Overload의 실전 발동
+- 9개 장비를 각각 장착한 장시간 밸런스 및 프레임 성능
+- Safari/Firefox 및 GitHub Pages 배포본
 
 ## 기술 부채 정리 결과
 

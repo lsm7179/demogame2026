@@ -2,6 +2,21 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.5.0] - 2026-08-23
+
+### Added
+
+- Added data-driven Weapon, Armor, and Temporal Relic slots with nine equipment definitions.
+- Added weighted room and Anchor equipment rewards, three-card keyboard-accessible selection, replacement previews, and skip flow.
+- Added Chrono Vest shields, Vector Harness dash charges, Hunter Coat shard collection, Echo Lens amplification, Memory Core support fire, and Paradox Ring Overload modifiers.
+- Added pure equipment, migration, reward, fire-profile, and Echo snapshot regression coverage.
+
+### Changed
+
+- Fire events now own a serializable deep snapshot of their weapon profile, visual identity, range, penetration, and Anchor modifier.
+- Campaign saves migrate from schema 2 to schema 3 while preserving ranks, scores, unlocks, upgrades, difficulty, and mute state.
+- First clears now flow from result to equipment recovery, then Chrono Crystal upgrades, then the sector map.
+
 ## [0.4.0] - 2026-08-17
 
 ### Added

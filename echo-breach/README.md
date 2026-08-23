@@ -44,7 +44,7 @@ npm run check
 
 ## 캠페인 흐름
 
-타이틀에서 새 캠페인 또는 계속하기를 선택하고 난이도와 해금된 스테이지를 고릅니다. 스테이지 최초 클리어 시 Chrono Crystal을 분석해 중복되지 않는 업그레이드 후보 3개 중 하나를 획득합니다. Stage 4와 5는 이후 확장을 위한 잠금 카드와 데이터만 포함합니다.
+타이틀에서 새 캠페인 또는 계속하기를 선택하고 난이도와 해금된 스테이지를 고릅니다. 일반방은 35%, 정예방은 75%, Chrono Anchor는 100% 확률로 소유하지 않은 장비 후보를 최대 3개 제공합니다. 스테이지 최초 클리어는 `결과 → 장비 → Chrono Crystal 업그레이드 → 구역 지도` 순서로 진행됩니다. Stage 4와 5는 이후 확장을 위한 잠금 카드와 데이터만 포함합니다.
 
 ## 플레이 가능한 스테이지
 
@@ -66,9 +66,20 @@ ECHO-07과 Echo는 머리·몸통·좌우 다리가 구분되는 8방향 탑다�
 
 SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD OVERRIDE, REINFORCED HULL, VECTOR THRUSTER, EMERGENCY REWIND를 구현했습니다. 사격 이벤트에는 발사 당시 무기·각도·탄 수·피해·관통·충전량이 저장되어 Echo가 같은 공격을 재생합니다.
 
+## 장비
+
+장비는 캠페인 modifier인 업그레이드와 별개이며 같은 슬롯 장비를 고르면 교체됩니다. 선택 화면에서는 장착하거나 `SKIP CACHE`를 고를 수 있고 전투·루프·Overdrive 시간은 정지합니다.
+
+- **Weapon:** PHASE CARBINE(표준), BREACH SHOTGUN(근거리 5발), PULSE RIFLE(관통 2)
+- **Armor:** CHRONO VEST(루프 보호막 25), VECTOR HARNESS(짧은 대시 2회), HUNTER COAT(속도·Shard 반경 증가/체력 감소)
+- **Temporal Relic:** ECHO LENS(Echo 중심 화력), MEMORY CORE(최대 3초 지원 사격), PARADOX RING(Overload 강화)
+- 희귀도 가중치는 COMMON 65, RARE 28, LEGENDARY 7입니다.
+- Shotgun은 Split Shot·Charge Lance, Pulse Rifle은 Pulse Cannon과 비호환이며 후보 단계에서 제외됩니다. 기존 업그레이드는 삭제하지 않습니다.
+- Echo 사격 이벤트는 장비 ID만 참조하지 않고 당시 탄 수, 확산, 피해, 탄속, 사거리, 관통, 코어 보정과 시각 프로필을 깊은 복사합니다. 장비 교체 후에도 기존 Echo의 무장은 변하지 않습니다.
+
 ## 저장
 
-`echoBreachCampaign` 키에 버전 2 형식으로 난이도, 최고 해금 스테이지, 스테이지별 최고 랭크/점수, 업그레이드, 음소거, 캠페인 유무를 저장합니다. 파싱 실패, 잘못된 필드, 다른 버전은 안전한 기본값으로 복구합니다. 새 캠페인은 확인 후 난이도를 선택할 때 새 시간선을 확정합니다.
+`echoBreachCampaign` 키에 버전 3 형식으로 기존 진행과 `loadout`, `equipmentOwned`를 저장합니다. 스키마 2 저장은 랭크·점수·해금·업그레이드·난이도를 유지한 채 빈 장비 상태로 명시적으로 마이그레이션됩니다. 잘못된 장비 ID, 슬롯 불일치와 중복은 제거됩니다. 새 캠페인은 확인 후 난이도를 선택할 때 장비와 업그레이드를 함께 초기화합니다.
 
 ## 파일 구조
 
@@ -82,6 +93,8 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `objective-data.js`: 릴레이 수·필요 수·위치·충전과 Anchor 목표
 - `temporal-core.js`: Shard, Overdrive, Anchor 단계와 Overload 순수 판정
 - `echo-core.js`: 브라우저와 Node 테스트가 공유하는 순수 Echo 시간 로직
+- `equipment-data.js`: 9개 장비, 희귀도, 보상 확률과 안전 제한값
+- `equipment-core.js`: loadout, 후보, 장착, 저장 마이그레이션과 발사 프로필 순수 함수
 - `version.json`: 공개 게임 버전과 저장 스키마 버전
 - `manifest.webmanifest`: 설치·출시 메타데이터
 - `README.md`: 실행 및 기능 안내

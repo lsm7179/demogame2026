@@ -6,7 +6,7 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 ## 상태 흐름
 
-`title → difficulty → stageSelect → briefing → playing → loopTransition → result → upgradeSelect`가 기본 흐름이다. `pause`, `recordOverride`는 전투의 일시적 분기다. 메뉴 진입 시 전투 RAF를 종료하고 새 전투 시작 시 하나만 생성한다.
+`title → difficulty → stageSelect → briefing → playing → loopTransition → result → equipmentSelect → upgradeSelect`가 최초 클리어 흐름이다. 일반/정예 방 보상은 `playing → equipmentSelect → playing`으로 복귀한다. `pause`, `recordOverride`는 전투의 일시적 분기다. 장비 선택 중 시뮬레이션은 정지하고 RAF는 하나만 유지한다.
 
 ## 난이도 CONFIG
 
@@ -40,6 +40,26 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 무기 업그레이드 세 개는 상호 비호환이다. Split Shot은 중심 기준 좌우 5도의 2발·개별 70%로 총 잠재 피해 140%다. Pulse Cannon은 발사 간격 162%·피해 155%·3회 관통, Charge Lance는 1.25초 자동 충전과 완충 관통을 제공한다. Amplifier는 현재 피해 92%와 Echo 80%, Extended Memory는 기록 종료 후 2초 지원 사격, Record Override는 저장/폐기 선택을 제공한다. Hull은 +35 HP/-7% 속도, Thruster는 거리 -12%인 2회 충전, Emergency Rewind는 스테이지 1회 2초 전 위치와 30% 체력 복귀다.
 
+## 장비 규칙과 현재 수치
+
+장비는 `weapon`, `armor`, `relic` 세 슬롯이며 업그레이드를 삭제하거나 대체하지 않는다. Weapon이 기본 발사 프로필을 정한 뒤 호환되는 Upgrade modifier를 한 번 적용한다. Shotgun+Split/Charge, Pulse Rifle+Pulse Cannon은 후보에서 제외한다.
+
+| 장비           | 희귀도    | 핵심 수치                                                       |
+| -------------- | --------- | --------------------------------------------------------------- |
+| Phase Carbine  | COMMON    | 1발, 피해/간격/탄속/사거리 ×1                                   |
+| Breach Shotgun | RARE      | 5발, 총 32°, 발당 ×0.34, 간격 ×1.55, 사거리 ×0.55, Anchor ×0.82 |
+| Pulse Rifle    | RARE      | 피해 ×1.35, 간격 ×1.45, 탄속 ×1.25, 사거리 ×1.2, 관통 2         |
+| Chrono Vest    | COMMON    | 새 루프 보호막 25                                               |
+| Vector Harness | RARE      | 대시 2회, 거리 ×0.88; Thruster 중복 시 재충전 ×0.9              |
+| Hunter Coat    | LEGENDARY | 속도 ×1.1, Shard 반경 ×1.45, 최대 HP ×0.88                      |
+| Echo Lens      | RARE      | 현재 피해 ×0.92, Echo 배율 ×1.25                                |
+| Memory Core    | LEGENDARY | 기록 종료 후 2초; Extended Memory와 최대 3초                    |
+| Paradox Ring   | LEGENDARY | Overload 피해 ×1.35, 쿨다운 ×0.85(최소 0.7초)                   |
+
+보상 확률은 일반 0.35, 정예 0.75, Anchor 1.0이며 후보 수는 3이다. 희귀도 가중치는 65/28/7이다. 소유·현재 장착·업그레이드 비호환 장비를 제외하고 주입 RNG로 가중 추첨한다.
+
+사격 이벤트는 `weaponId`, `fireType`, `angle`, `count`, `spread`, `damage`, `echoBaseDamage`, `fireInterval`, `speed`, `range`, `pierce`, `coreDamageMultiplier`, `visualProfile`의 원시 복사본을 소유한다. 따라서 현재 loadout이나 장비 데이터 변경이 진행 중인 Echo를 바꾸지 않는다. Echo 배율은 기록 피해에 한 번만 적용하고 Overdrive가 그 뒤에 곱해진다.
+
 ## 릴레이, Anchor와 적
 
 릴레이는 스테이지 데이터 기준 기본 2개, 필요 2개이며 100 충전, 탄환당 12, 기본 초당 8 감소다. 필요한 릴레이가 동시 완충되면 난이도별 시간만큼 보호막이 열린다. Anchor 체력은 Stage 1/2/3에서 650/720/760이며 누적 피해는 루프를 넘는다. RIFT HOUND는 이동 압박, SPORE CASTER는 원거리 사격, ANCHOR BRUTE는 릴레이 시야 방해 역할이다. LEECH는 제한된 감속, CORE GUARD는 릴레이 감소 강화, RIFT BLOATER는 경고 후 쌍방 폭발을 제공한다.
@@ -54,13 +74,13 @@ Stage 1은 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER의 순차 방 전투�
 
 독립 `calculateRank` 함수가 성공 여부, 적은 루프, 받은 피해, 남은 시간, Echo의 코어 명중 비율, 구조 생존율, 난이도 배율을 점수화한다. 각 스테이지의 S/A/B 임계값과 비교해 S/A/B/C를 결정하고 결과 화면에 루프·피해·협공·시간 또는 구조 인원을 근거로 표시한다.
 
-## 저장 스키마 v2
+## 저장 스키마 v3
 
 ```js
-{ version: 2, difficulty, unlockedStage, stages: { [stageId]: { rank, score } }, upgrades: [], muted, hasCampaign }
+{ version: 3, difficulty, unlockedStage, stages: { [stageId]: { rank, score } }, upgrades: [], loadout: { weapon, armor, relic }, equipmentOwned: [], muted, hasCampaign }
 ```
 
-최고 랭크는 S>A>B>C 순으로, 점수는 최대값으로만 갱신한다. 불일치 버전과 손상 JSON은 기본값으로 복구한다.
+최고 랭크는 S>A>B>C 순으로, 점수는 최대값으로만 갱신한다. v2는 기존 진행을 보존해 v3으로 옮기며 장비만 빈 상태로 시작한다. 손상 JSON은 기본값으로 복구하고 잘못된 장비 필드는 정규화한다.
 
 ## 플레이테스트 질문
 
@@ -71,6 +91,8 @@ Stage 1은 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER의 순차 방 전투�
 5. Record Override가 전략적 수정인가, 흐름 방해인가?
 6. 탈출선 파괴 후에도 실패감은 남되 계속할 동기가 있는가?
 7. 랭크 근거가 다음 도전을 명확하게 만드는가?
+8. Shotgun 위치 선정, Rifle 사격선, Carbine 안정성이 실제로 다른 기록 전략을 만드는가?
+9. Armor와 Relic 선택이 다음 방에서 체감되지만 기본 loadout을 무의미하게 만들지 않는가?
 
 ## Stage 4 전에 검증할 것
 
