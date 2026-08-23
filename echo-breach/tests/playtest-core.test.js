@@ -33,6 +33,7 @@ test("finished playtests preserve combat contribution metrics", () => {
     echoCoreHits: 8,
   });
   assert.equal(result.outcome, "clear");
+  assert.equal(result.version, 2);
   assert.equal(result.echoCoreRatio, 0.4);
   assert.equal(result.echoes, 3);
 });

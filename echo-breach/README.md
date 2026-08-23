@@ -109,7 +109,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 
 로컬 UI 검수는 정적 서버에서 `?ui-preview=equipment` 또는 `?ui-preview=upgrade`를 붙여 보상 화면을 직접 열 수 있습니다. 이 진입점은 `localhost`와 `127.0.0.1`에서만 동작합니다.
 
-로컬 Stage 1 플레이 기록은 출시 저장과 분리된 `echoBreachPlaytests` 키에 최근 50회까지 보관됩니다. `?playtest-report=1`은 로컬 서버에서만 요약과 원본 기록을 보여주며 배포 호스트에서는 활성화되지 않습니다.
+로컬 Stage 1 플레이 기록은 출시 저장과 분리된 `echoBreachPlaytestsV2` 키에 최근 50회까지 보관됩니다. `?playtest-report=1`은 로컬 서버에서만 요약과 원본 기록을 보여주며 배포 호스트에서는 활성화되지 않습니다.
 
 ## 알려진 제한사항과 다음 후보
 

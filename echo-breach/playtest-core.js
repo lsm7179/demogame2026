@@ -9,7 +9,7 @@
 
   function createRun(meta = {}) {
     return {
-      version: 1,
+      version: 2,
       startedAt: meta.startedAt || new Date().toISOString(),
       stageId: meta.stageId || "unknown",
       difficulty: meta.difficulty || "operative",

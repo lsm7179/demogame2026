@@ -314,7 +314,7 @@ let raf = 0,
   camera = { x: 0, y: 0 };
 const keys = Object.create(null),
   mouse = { x: 640, y: 360, sx: 640, sy: 360, inside: false };
-const PLAYTEST_STORAGE_KEY = "echoBreachPlaytests";
+const PLAYTEST_STORAGE_KEY = "echoBreachPlaytestsV2";
 const playtestEnabled = ["127.0.0.1", "localhost"].includes(location.hostname);
 
 function readPlaytestRuns() {
@@ -360,6 +360,7 @@ function freshState() {
     mode: "title",
     loop: 1,
     elapsed: 0,
+    stageActiveSeconds: 0,
     paused: false,
     score: 0,
     kills: 0,
@@ -1655,7 +1656,7 @@ function endStage(win) {
     writePlaytestRun(
       PlaytestCore.finishRun(state.playtestRun, {
         win,
-        activeSeconds: (state.loop - 1) * diff.loopTime + state.elapsed,
+        activeSeconds: state.stageActiveSeconds,
         loops: state.loop,
         echoes: recordings.length,
         kills: state.kills,
@@ -2720,6 +2721,7 @@ function update(dt) {
     return;
   }
   state.elapsed += dt;
+  state.stageActiveSeconds += dt;
   state.overdriveTimer = TemporalCore.tickOverdrive(state, dt).overdriveTimer;
   state.overloadText = Math.max(0, state.overloadText - dt);
   updateCameraTracking(dt);
