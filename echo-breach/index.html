@@ -18,7 +18,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050711'/%3E%3Cpath d='M13 16h38v9H24v7h22v8H24v7h27v9H13z' fill='%2345f5e9'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="style.css?v=0.7.0-hud" />
+    <link rel="stylesheet" href="style.css?v=0.7.1-copy" />
   </head>
   <body>
     <main id="game-shell">
@@ -83,7 +83,7 @@
             <span><b>WASD</b> 이동</span><span><b>MOUSE</b> 조준·자동 사격</span
             ><span><b>SPACE</b> 대시</span><span><b>R</b> 루프 기록</span>
           </div>
-          <button id="mute-title" class="text-button">SOUND: ON</button>
+          <button id="mute-title" class="text-button">소리: 켬</button>
           <p class="mobile-note">데스크톱 플레이를 권장합니다.</p>
         </div>
       </section>
@@ -132,7 +132,7 @@
         <div class="panel compact">
           <p class="eyebrow">SYSTEM SUSPENDED</p>
           <h2>PAUSED</h2>
-          <p>ESC 키로 전투 복귀</p>
+          <p id="pause-help">ESC 키로 전투 복귀</p>
           <button id="abort-button" class="secondary">ABORT TO MAP</button>
         </div>
       </section>
@@ -177,7 +177,7 @@
         <div class="panel wide">
           <p class="eyebrow">CHRONO CRYSTAL ANALYSIS</p>
           <h2>SELECT UPGRADE</h2>
-          <p>한 캠페인 동안 유지됩니다. 다음 기록 전략을 선택하세요.</p>
+          <p id="upgrade-help">강화 1개를 선택합니다.</p>
           <div id="upgrade-cards" class="card-grid three"></div>
         </div>
       </section>
@@ -185,7 +185,7 @@
         <div class="panel wide">
           <p id="equipment-kicker" class="eyebrow">ROOM CACHE // TEMPORAL EQUIPMENT</p>
           <h2>SELECT EQUIPMENT</h2>
-          <p>장비는 현재 캠페인 동안 유지됩니다. 같은 슬롯을 선택하면 기존 장비를 교체합니다.</p>
+          <p id="equipment-help">장비 1개를 선택하거나 건너뜁니다.</p>
           <div id="equipment-cards" class="card-grid three"></div>
           <button id="equipment-skip" class="secondary">SKIP CACHE</button>
         </div>
@@ -201,6 +201,7 @@
     <script src="collision-core.js"></script>
     <script src="world-core.js"></script>
     <script src="ui-core.js"></script>
+    <script src="copy-data.js"></script>
     <script src="echo-core.js"></script>
     <script src="equipment-data.js"></script>
     <script src="equipment-core.js"></script>

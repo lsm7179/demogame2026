@@ -23,6 +23,9 @@ const BASE = Object.freeze({
   SHIELD_OPEN: 5.3,
   TRANSITION: 0.9,
 });
+const LOCALE = CopyData.defaultLocale;
+const localized = (group, id) => CopyData.text(group, id, LOCALE);
+const uiCopy = () => CopyData.locales[LOCALE]?.ui || CopyData.locales.ko.ui;
 const DIFFICULTIES = Object.freeze({
   story: {
     id: "story",
@@ -178,84 +181,57 @@ const STAGES = [
 const UPGRADES = [
   {
     id: "split-shot",
-    name: "SPLIT SHOT",
     category: "WEAPON",
-    description: "좌우 5° 2방향 자동 사격. 탄환 피해 70%.",
     rarity: "rare",
     incompatible: ["pulse-cannon", "charge-lance"],
-    visual: "TRIPLE MUZZLE",
   },
   {
     id: "pulse-cannon",
-    name: "PULSE CANNON",
     category: "WEAPON",
-    description: "발사 속도 38% 감소. 관통하는 고출력 탄환.",
     rarity: "rare",
     incompatible: ["split-shot", "charge-lance"],
-    visual: "HEAVY BOLT",
   },
   {
     id: "charge-lance",
-    name: "CHARGE LANCE",
     category: "WEAPON",
-    description: "자동 충전 후 완충 사격. 적과 릴레이를 관통한다.",
     rarity: "epic",
     incompatible: ["split-shot", "pulse-cannon"],
-    visual: "CHARGE RING",
   },
   {
     id: "echo-amplifier",
-    name: "ECHO AMPLIFIER",
     category: "TIME",
-    description: "Echo 피해 80%. 현재 기체 피해 92%.",
     rarity: "epic",
     incompatible: [],
-    visual: "BRIGHT ECHO",
   },
   {
     id: "extended-memory",
-    name: "EXTENDED MEMORY",
     category: "TIME",
-    description: "기록 종료 후 마지막 방향으로 2초간 지원 사격.",
     rarity: "rare",
     incompatible: [],
-    visual: "AFTERIMAGE HALO",
   },
   {
     id: "record-override",
-    name: "RECORD OVERRIDE",
     category: "TIME",
-    description: "루프 종료 때 기록 저장 또는 폐기 선택.",
     rarity: "rare",
     incompatible: [],
-    visual: "TIMELINE FORK",
   },
   {
     id: "reinforced-hull",
-    name: "REINFORCED HULL",
     category: "HULL",
-    description: "최대 체력 +35. 이동 속도 -7%.",
     rarity: "common",
     incompatible: [],
-    visual: "ARMORED FRAME",
   },
   {
     id: "vector-thruster",
-    name: "VECTOR THRUSTER",
     category: "HULL",
-    description: "대시 충전 2개. 각 대시 거리는 12% 감소.",
     rarity: "rare",
     incompatible: [],
-    visual: "TWIN THRUSTERS",
   },
   {
     id: "emergency-rewind",
-    name: "EMERGENCY REWIND",
     category: "HULL",
-    description: "스테이지당 한 번, 치명상 시 2초 전 위치로 귀환.",
     rarity: "epic",
     incompatible: [],
-    visual: "REWIND CORE",
   },
 ];
 const SAVE_KEY = "echoBreachCampaign",
@@ -524,7 +500,7 @@ const sfx = {
 };
 function toggleMute() {
   muted = !muted;
-  ui.muteTitle.textContent = `SOUND: ${muted ? "OFF" : "ON"}`;
+  ui.muteTitle.textContent = `소리: ${muted ? "끔" : "켬"}`;
   ui.muteGame.textContent = muted ? "M×" : "M";
   persist();
 }
@@ -1705,10 +1681,14 @@ function showUpgrades() {
     return;
   }
   $("upgrade-cards").innerHTML = c
-    .map(
-      (u) =>
-        `<button class="card rarity-${u.rarity}" data-upgrade="${u.id}"><span class="num">${u.category} // ${u.rarity.toUpperCase()}</span><h3>${u.name}</h3><p>${u.description}</p><p class="statline">${u.visual}</p></button>`
-    )
+    .map((u) => {
+      const copy = localized("upgrades", u.id) || {
+        name: "알 수 없는 강화",
+        description: uiCopy().emptyDescription,
+        detail: "",
+      };
+      return `<button class="card choice-card rarity-${u.rarity}" data-upgrade="${u.id}"><span class="num">${uiCopy().categories[u.category] || u.category} // ${uiCopy().rarities[u.rarity] || u.rarity}</span><h3>${copy.name}</h3><p class="choice-description">${copy.description}</p><p class="statline">${copy.detail}</p></button>`;
+    })
     .join("");
 }
 function equipmentItem(id) {
@@ -1745,8 +1725,17 @@ function equipmentCard(item) {
     save.upgrades
   );
   const blocked = !validation.valid;
-  const slotName = item.slot === "relic" ? "TEMPORAL RELIC" : item.slot.toUpperCase();
-  return `<button class="card equipment-card rarity-${item.rarity}" data-equipment="${item.id}" ${blocked ? "disabled" : ""}><span class="equip-icon" aria-hidden="true">${item.visual.icon}</span><span class="num">${slotName} // ${item.rarity.toUpperCase()}</span><h3>${item.name}</h3><p>${item.description}</p><p class="statline">${item.statSummary.join(" · ")}</p><p class="current">CURRENT: ${current?.name || "NONE"}</p><p class="pros">+ ${item.advantages.join(" · ")}</p><p class="cons">- ${item.drawbacks.join(" · ")}</p>${blocked ? `<p class="blocked-reason">INCOMPATIBLE: ${validation.errors.join(", ")}</p>` : ""}</button>`;
+  const copy = localized("equipment", item.id) || {
+      name: "알 수 없는 장비",
+      description: uiCopy().emptyDescription,
+      stats: [],
+      pros: "",
+      cons: "",
+    },
+    currentCopy = current ? localized("equipment", current.id) : null,
+    slotName = uiCopy().slots[item.slot] || item.slot,
+    rarityName = uiCopy().rarities[item.rarity] || item.rarity;
+  return `<button class="card choice-card equipment-card rarity-${item.rarity}" data-equipment="${item.id}" ${blocked ? "disabled" : ""}><span class="equip-icon" aria-hidden="true">${item.visual.icon}</span><span class="num">${slotName} // ${rarityName}</span><h3>${copy.name}</h3><p class="choice-description">${copy.description}</p><p class="statline">${copy.stats.join(" · ")}</p><p class="current">${uiCopy().current}: ${currentCopy?.name || uiCopy().none}</p><p class="pros">+ ${uiCopy().advantage}: ${copy.pros}</p><p class="cons">- ${uiCopy().drawback}: ${copy.cons}</p>${blocked ? `<p class="blocked-reason">${uiCopy().incompatible}</p>` : ""}</button>`;
 }
 function showEquipmentSelection(nextFlow) {
   const candidates = equipmentCandidates();
@@ -1761,7 +1750,7 @@ function showEquipmentSelection(nextFlow) {
   state.mode = "equipmentSelect";
   screens.equipment.classList.remove("hidden");
   $("equipment-kicker").textContent =
-    nextFlow === "room" ? "ROOM CACHE // TEMPORAL EQUIPMENT" : "ANCHOR CACHE // TEMPORAL EQUIPMENT";
+    nextFlow === "room" ? "전투 구역 보상 // 장비" : "ANCHOR 보상 // 장비";
   $("equipment-cards").innerHTML = candidates.map(equipmentCard).join("");
   requestAnimationFrame(() => $("equipment-cards").querySelector("button:not(:disabled)")?.focus());
   return true;
@@ -1824,15 +1813,16 @@ function updateHUD() {
   ui.core.style.width = `${anchorActive() ? (100 * core.hp) / core.maxHp : 0}%`;
   ui.score.textContent = Math.round(state.score);
   const slotMeta = {
-    weapon: { icon: "⌁", label: "WEAPON" },
-    armor: { icon: "⬡", label: "ARMOR" },
-    relic: { icon: "◈", label: "RELIC" },
+    weapon: { icon: "⌁", label: uiCopy().slots.weapon },
+    armor: { icon: "⬡", label: uiCopy().slots.armor },
+    relic: { icon: "◈", label: uiCopy().slots.relic },
   };
   ui.loadout.innerHTML = Object.entries(save.loadout)
     .map(([slot, id]) => {
       const item = equipmentItem(id),
-        meta = slotMeta[slot];
-      return `<span class="loadout-slot" tabindex="0" data-tooltip="${item?.description || `${meta.label} 장비 없음`}"><i class="slot-icon" aria-hidden="true">${meta.icon}</i><span><small>${meta.label}</small><b>${item?.name || "NONE"}</b></span></span>`;
+        meta = slotMeta[slot],
+        copy = item ? localized("equipment", item.id) : null;
+      return `<span class="loadout-slot" tabindex="0" data-tooltip="${copy?.description || `${meta.label}: ${uiCopy().none}`}"><i class="slot-icon" aria-hidden="true">${meta.icon}</i><span><small>${meta.label}</small><b>${copy?.name || uiCopy().none}</b></span></span>`;
     })
     .join("");
   ui.shuttleHud.classList.toggle("hidden", !shuttle);
@@ -2717,15 +2707,21 @@ function bindUI() {
     finishEquipmentSelection();
   };
 }
+function applyLocalizedStaticCopy() {
+  $("pause-help").textContent = uiCopy().pauseHelp;
+  $("upgrade-help").textContent = uiCopy().upgradeHelp;
+  $("equipment-help").textContent = uiCopy().equipmentHelp;
+}
 function init() {
   diff = DIFFICULTIES[save.difficulty] || DIFFICULTIES.operative;
   muted = save.muted;
+  applyLocalizedStaticCopy();
   renderDifficulties();
   resize();
   bindInputs();
   bindUI();
   addEventListener("resize", resize);
-  ui.muteTitle.textContent = `SOUND: ${muted ? "OFF" : "ON"}`;
+  ui.muteTitle.textContent = `소리: ${muted ? "끔" : "켬"}`;
   render();
 }
 init();

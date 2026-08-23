@@ -2,6 +2,15 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.7.1] - 2026-08-23
+
+### Changed
+
+- Rewrote all nine upgrade and nine equipment descriptions as concise Korean effect summaries with decision-critical values.
+- Localized equipment names, slots, categories, rarities, advantages, drawbacks, empty states, pause help, and reward guidance.
+- Moved player-facing choice copy into locale-aware `copy-data.js` with Korean defaults and English fallback structure.
+- Standardized choice card heights and limited primary descriptions to two rendered lines.
+
 ## [0.7.0] - 2026-08-23
 
 ### Added
