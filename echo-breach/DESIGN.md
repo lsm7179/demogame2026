@@ -26,7 +26,7 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 ### Stage 1 — AWAKENING
 
-고정 릴레이 세 개를 서로 다른 시간선에 배분한다. 기존 원형 전투의 학습성과 즉각적인 협공을 보존한다.
+3900×1080 월드의 세 구역을 전환 화면 없이 연결한다. 첫 루프의 Echo가 입구 전투를 반복하는 동안 현재 플레이어가 더 깊이 전진하고, INFESTED LAB의 시간 스위치를 과거 사격에 맡기면 중앙 지름길이 열린다. 마지막에는 누적된 전체 경로의 Echo가 릴레이와 Anchor 협공에 합류한다.
 
 ### Stage 2 — SPLIT CURRENT
 
@@ -64,9 +64,11 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 릴레이는 스테이지 데이터 기준 기본 2개, 필요 2개이며 100 충전, 탄환당 12, 기본 초당 8 감소다. 필요한 릴레이가 동시 완충되면 난이도별 시간만큼 보호막이 열린다. Anchor 체력은 Stage 1/2/3에서 650/720/760이며 누적 피해는 루프를 넘는다. RIFT HOUND는 이동 압박, SPORE CASTER는 원거리 사격, ANCHOR BRUTE는 릴레이 시야 방해 역할이다. LEECH는 제한된 감속, CORE GUARD는 릴레이 감소 강화, RIFT BLOATER는 경고 후 쌍방 폭발을 제공한다.
 
-## 연결형 룸 규칙
+## 연속 월드와 연결형 룸 규칙
 
-Stage 1은 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER의 순차 방 전투다. 앞의 두 방은 적 전멸 후 출구가 열리며 다음 방에서 Echo 기록을 새로 시작한다. 체력·점수·업그레이드·Overdrive는 유지한다. Stage 2~3은 `room-data.js`의 기존 방·벽·적 생성 지점 데이터를 유지한다.
+Stage 1은 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER를 하나의 월드 좌표계로 잇는다. 카메라는 현재 플레이어를 부드럽게 추적하지만 기록에는 위치·조준·실제 발사·대시의 월드 값만 저장한다. 중간 구역 진입은 Echo·총알·적·Shard·Overdrive를 초기화하거나 장비 화면을 열지 않는다. 루프 종료 때만 플레이어, 적, 릴레이, 스위치와 단기 전투 상태를 시작 상태로 복원하고 기록된 Echo와 Anchor 누적 피해 등 기존 영속 정책은 유지한다. 화면 밖 개체도 동일하게 업데이트하며 미니맵과 화면 가장자리 Echo 표식으로 위치를 안내한다.
+
+Stage 2~3은 `room-data.js`의 기존 방·벽·적 생성 지점과 전환 정책을 유지한다.
 
 몬스터가 떨어뜨리는 Chrono Shard는 플레이어만 흡수한다. 게이지 100에서 8초 Overdrive가 자동 발동해 플레이어 연사 +25%, Echo 피해 +30%, Anchor 피해 +50%를 제공한다. Anchor는 ARMORED/CRACKED/UNSTABLE/CRITICAL/COLLAPSED 단계를 가지며 플레이어와 Echo가 0.25초 안에 명중하면 내부 쿨다운 후 Temporal Overload가 발생한다.
 

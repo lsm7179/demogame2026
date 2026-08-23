@@ -2,6 +2,19 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.6.0] - 2026-08-23
+
+### Added
+
+- Added a data-driven 3900×1080 continuous Stage 1 world with three connected zones, a time switch, an Echo-operated shortcut, smooth camera tracking, and a compact minimap.
+- Added pure camera transforms, zone lookup, and continuous-loop reset regression coverage.
+
+### Changed
+
+- Stage 1 Echo recordings now span the entire world in world coordinates and survive movement between zones.
+- Intermediate Stage 1 room transitions and equipment interruptions were removed; equipment remains available after Anchor destruction.
+- Loop rewind now restores Stage 1 transient world actors and devices while preserving recordings and cumulative Anchor damage.
+
 ## [0.5.0] - 2026-08-23
 
 ### Added

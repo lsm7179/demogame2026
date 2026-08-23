@@ -44,11 +44,11 @@ npm run check
 
 ## 캠페인 흐름
 
-타이틀에서 새 캠페인 또는 계속하기를 선택하고 난이도와 해금된 스테이지를 고릅니다. 일반방은 35%, 정예방은 75%, Chrono Anchor는 100% 확률로 소유하지 않은 장비 후보를 최대 3개 제공합니다. 스테이지 최초 클리어는 `결과 → 장비 → Chrono Crystal 업그레이드 → 구역 지도` 순서로 진행됩니다. Stage 4와 5는 이후 확장을 위한 잠금 카드와 데이터만 포함합니다.
+타이틀에서 새 캠페인 또는 계속하기를 선택하고 난이도와 해금된 스테이지를 고릅니다. 일반방은 35%, 정예방은 75%, Chrono Anchor는 100% 확률로 소유하지 않은 장비 후보를 최대 3개 제공합니다. Stage 1에서는 연속 전진을 끊지 않도록 중간 구역 장비 선택을 생략하고 Anchor 파괴 후 보상을 제공합니다. 스테이지 최초 클리어는 `결과 → 장비 → Chrono Crystal 업그레이드 → 구역 지도` 순서로 진행됩니다. Stage 4와 5는 이후 확장을 위한 잠금 카드와 데이터만 포함합니다.
 
 ## 플레이 가능한 스테이지
 
-- **Stage 1 — AWAKENING:** CONTAINMENT HALL과 INFESTED LAB 전투를 끝내 출구를 개방한 뒤 ANCHOR CHAMBER에서 방 단위 Echo 기록으로 릴레이 2개를 동기화합니다.
+- **Stage 1 — AWAKENING:** 3900×1080 연속 월드에서 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER를 화면 전환 없이 돌파합니다. Echo는 이전 루프의 전체 월드 경로를 재생하며, 스위치를 맡은 Echo가 중앙 지름길을 여는 동안 현재 플레이어가 더 깊이 전진해 릴레이 2개와 Anchor를 공략합니다.
 - **Stage 2 — SPLIT CURRENT:** 스위치 제어실의 Echo가 사격을 계속해야 중앙 통로가 열리고 반대편 Anchor실로 진입할 수 있습니다.
 - **Stage 3 — RESCUE WINDOW:** 탈출선 격납고를 호위하는 기록을 남긴 뒤 연결 통로를 지나 릴레이실과 Anchor 제어실을 공략합니다.
 
@@ -88,7 +88,9 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `game.js`: 데이터, 저장, 전투, Echo 기록/재생, 스테이지 규칙
 - `game-balance.js`: 자동 사격과 무기 핵심 밸런스 상수
 - `monster-data.js`: 시간 오염 몬스터 역할과 기존 전투 수치
-- `room-data.js`: Stage 1~3 방, 벽, 통로와 안전한 생성 지점
+- `room-data.js`: Stage 2~3 방, 벽, 통로와 Stage 1 이전 구조의 회귀 데이터
+- `world-data.js`: Stage 1 연속 월드 크기, 구역, 벽, 적 웨이브, 스위치, 지름길과 Anchor 배치
+- `world-core.js`: 카메라 추적, 화면/월드 좌표 변환, 구역 판정과 루프 초기화 순수 함수
 - `collision-core.js`: 원형 액터의 축별 벽 슬라이딩과 고속 이동 충돌
 - `objective-data.js`: 릴레이 수·필요 수·위치·충전과 Anchor 목표
 - `temporal-core.js`: Shard, Overdrive, Anchor 단계와 Overload 순수 판정
