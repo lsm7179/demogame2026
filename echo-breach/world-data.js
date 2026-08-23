@@ -45,6 +45,7 @@
           { delay: 0.7, rhythm: "burst", enemies: ["chaser", "exploder"] },
           { delay: 4.5, rhythm: "pressure", enemies: ["shooter", "exploder"] },
           { delay: 8.2, rhythm: "elite", enemies: ["blocker"], elite: true },
+          { delay: 11.2, rhythm: "midboss", enemies: ["rift-warden"], elite: true },
         ],
         spawnPoints: [
           { x: 1360, y: 280 },
@@ -66,6 +67,7 @@
         waveGroups: [
           { delay: 0.8, rhythm: "defense", enemies: ["shooter", "chaser"] },
           { delay: 5.4, rhythm: "elite", enemies: ["core-guard", "blocker"], elite: true },
+          { delay: 9.2, rhythm: "boss", enemies: ["chrono-abomination"], elite: true },
         ],
         spawnPoints: [
           { x: 2780, y: 250 },

@@ -960,7 +960,15 @@ function updateEchoes(dt) {
 // ── 총알, 적, Stage 3 구조선 ────────────────────────────────────────────────
 function enemyStats(type) {
   const m = MonsterData[type] || MonsterData.chaser;
-  return { r: m.radius, hp: m.hp, speed: m.speed, score: m.score, behavior: m.behavior };
+  return {
+    r: m.radius,
+    hp: m.hp,
+    speed: m.speed,
+    score: m.score,
+    behavior: m.behavior,
+    boss: m.boss,
+    elite: m.elite,
+  };
 }
 function queueEnemies() {
   warnings = [];
@@ -999,6 +1007,13 @@ function spawnEnemy(w) {
     speed: q.speed,
     score: q.score,
     behavior: q.behavior,
+    boss: q.boss,
+    elite: w.elite || q.elite,
+    bossConfig: BossData[w.type] || null,
+    bossState: {},
+    bossPhase: 1,
+    attackTimer: 1.4,
+    telegraph: 0,
     alive: true,
     fire: 1 + Math.random(),
     touch: 0,
@@ -1025,6 +1040,27 @@ function enemyShoot(e, target) {
     targetShuttle: e.targetShuttle,
   });
 }
+function bossVolley(e) {
+  const profile = BossCore.attackProfile(e.bossConfig, e.bossPhase);
+  for (let i = 0; i < profile.projectileCount; i++) {
+    const a = (i / profile.projectileCount) * Math.PI * 2 + e.wobble * 0.2;
+    bullets.push({
+      x: e.x + Math.cos(a) * (e.r + 8),
+      y: e.y + Math.sin(a) * (e.r + 8),
+      px: e.x,
+      py: e.y,
+      vx: Math.cos(a) * profile.projectileSpeed * diff.enemyBullet,
+      vy: Math.sin(a) * profile.projectileSpeed * diff.enemyBullet,
+      r: e.bossPhase === 2 ? 7 : 6,
+      life: 4,
+      team: "enemy",
+      sourceType: e.type,
+      damage: profile.projectileDamage,
+    });
+  }
+  burst(e.x, e.y, "#c96b7a", 18, 150);
+  tone("sawtooth", e.bossPhase === 2 ? 105 : 135, 0.22, 0.055, -35);
+}
 function updateEnemies(dt) {
   for (const e of enemies) {
     if (!e.alive) continue;
@@ -1036,6 +1072,24 @@ function updateEnemies(dt) {
     if (e.stun > 0) {
       e.stun -= dt;
       continue;
+    }
+    if (e.bossConfig) {
+      const phase = BossCore.phaseFor(e.hp, e.maxHp, e.bossConfig);
+      if (phase !== e.bossPhase) {
+        e.bossPhase = phase;
+        timeWarp = 0.45;
+        shake = 8;
+        combatText(e.x, e.y - e.r - 18, "패턴 변화", "#f0b76b", true);
+      }
+      e.attackTimer -= dt;
+      if (e.telegraph > 0) {
+        e.telegraph -= dt;
+        if (e.telegraph <= 0) bossVolley(e);
+      } else if (e.attackTimer <= 0) {
+        const profile = BossCore.attackProfile(e.bossConfig, e.bossPhase);
+        e.telegraph = profile.telegraphSeconds;
+        e.attackTimer = profile.cooldown + profile.telegraphSeconds;
+      }
     }
     const target = e.targetShuttle && shuttle && shuttle.hp > 0 ? shuttle : player;
     let tx = target.x,
@@ -1140,7 +1194,10 @@ function updateBullets(dt) {
             break;
           }
       if (!gone && anchorActive() && hit(b, core)) {
-        if (state.shieldTimer > 0) {
+        const guardianPending =
+          enemies.some((enemy) => enemy.alive && enemy.type === "chrono-abomination") ||
+          warnings.some((warning) => warning.type === "chrono-abomination");
+        if (state.shieldTimer > 0 && !guardianPending) {
           damageCore(b.damage * (b.coreDamageMultiplier || 1), b.echo);
           burst(b.x, b.y, "#fff", 6, 85);
         } else spark(b.x, b.y, "#69a6ff");
@@ -1165,6 +1222,16 @@ function combatText(x, y, text, color, strong = false) {
 }
 function damageEnemy(e, dmg, byEcho, impact = null) {
   const critical = impact?.impactKind === "critical";
+  if (e.bossConfig && !BossCore.shieldOpen(e.bossState, state.elapsed)) {
+    const sync = BossCore.registerShieldHit(e.bossState, byEcho, state.elapsed, e.bossConfig);
+    e.bossState = sync.state;
+    spark(e.x, e.y, byEcho ? "#45f5e9" : "#ffe0a6");
+    if (sync.opened) {
+      combatText(e.x, e.y - e.r - 18, "시간 방벽 붕괴", "#73c9bf", true);
+      timeWarp = 0.42;
+      sfx.shield();
+    } else return;
+  }
   e.hp -= dmg;
   e.hitFlash = critical ? 0.14 : 0.09;
   e.hurt = 1;
@@ -2433,6 +2500,28 @@ function renderEnemies() {
       else if (monster.visual === "caster") renderSporeCaster(e, color, pulse);
       else if (monster.visual === "brute") renderAnchorBrute(e, color, pulse);
       else renderSpecialMonster(e, monster, pulse);
+      if (e.bossConfig) {
+        const shielded = !BossCore.shieldOpen(e.bossState, state.elapsed);
+        ctx.strokeStyle = shielded ? "#73c9bf" : "rgba(115,201,191,.2)";
+        ctx.lineWidth = shielded ? 4 : 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 12, 0, Math.PI * 2);
+        ctx.stroke();
+        if (e.telegraph > 0) {
+          const profile = BossCore.attackProfile(e.bossConfig, e.bossPhase);
+          ctx.strokeStyle = "#e2c49c";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.arc(
+            0,
+            0,
+            e.r + 21,
+            -Math.PI / 2,
+            -Math.PI / 2 + Math.PI * 2 * (1 - e.telegraph / profile.telegraphSeconds)
+          );
+          ctx.stroke();
+        }
+      }
       ctx.restore();
       ctx.fillStyle = "#ff9aaa";
       ctx.fillRect(e.x - e.r, e.y - e.r - 8, (e.r * 2 * e.hp) / e.maxHp, 3);
@@ -2897,9 +2986,22 @@ function init() {
 
 function openLocalUiPreview() {
   if (!["127.0.0.1", "localhost"].includes(location.hostname)) return;
-  const preview = new URLSearchParams(location.search).get("ui-preview");
+  const params = new URLSearchParams(location.search);
+  const preview = params.get("ui-preview");
   if (preview === "equipment") showEquipmentSelection("stage");
   if (preview === "upgrade") showUpgrades();
+  const bossPreview = params.get("boss-preview");
+  if (bossPreview) {
+    stage = STAGES[0];
+    startStage();
+    const bossType = bossPreview === "mid" ? "rift-warden" : "chrono-abomination";
+    warnings = warnings.filter((item) => item.type !== bossType);
+    const point = bossPreview === "mid" ? { x: 1650, y: 540 } : { x: 3100, y: 540 };
+    spawnEnemy({ x: point.x + 170, y: point.y, type: bossType, elite: true });
+    player.x = point.x;
+    player.y = point.y;
+    camera = WorldCore.updateCamera(camera, point, activeWorld(), view, 1);
+  }
 }
 
 function exposeLocalQaTools() {
