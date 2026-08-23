@@ -538,6 +538,10 @@ const sfx = {
   echo: () => tone("sine", 520, 0.055, 0.02, -180),
   hurt: () => tone("sawtooth", 85, 0.18, 0.09, -40),
   dash: () => tone("triangle", 360, 0.12, 0.05, 500),
+  enemyHit: (heavy = false) =>
+    tone(heavy ? "sawtooth" : "triangle", heavy ? 145 : 280, heavy ? 0.09 : 0.045, 0.025, -70),
+  kill: (elite = false) =>
+    tone(elite ? "square" : "triangle", elite ? 120 : 410, elite ? 0.24 : 0.1, 0.045, 180),
   relay: () => tone("sine", 520, 0.28, 0.06, 500),
   shield: () => tone("sawtooth", 180, 0.42, 0.07, 680),
   loop: () => tone("square", 170, 0.34, 0.06, -110),
@@ -772,6 +776,7 @@ function fireWeapon(owner, isEcho, profile, record = true) {
       pierce: p.pierce,
       coreDamageMultiplier: p.coreDamageMultiplier,
       visualProfile: { ...p.visualProfile },
+      impactKind: CombatFeedback.isCriticalImpact(p, BASE.BULLET_DAMAGE) ? "critical" : "normal",
       hitIds: [],
     });
   }
@@ -1003,6 +1008,7 @@ function spawnEnemy(w) {
     wobble: Math.random() * 6.28,
     hitFlash: 0,
     hurt: 0,
+    stun: 0,
   });
 }
 function enemyShoot(e, target) {
@@ -1030,6 +1036,10 @@ function updateEnemies(dt) {
     e.wobble += dt;
     e.hitFlash = Math.max(0, e.hitFlash - dt);
     e.hurt = Math.max(0, e.hurt - dt * 8);
+    if (e.stun > 0) {
+      e.stun -= dt;
+      continue;
+    }
     const target = e.targetShuttle && shuttle && shuttle.hp > 0 ? shuttle : player;
     let tx = target.x,
       ty = target.y;
@@ -1104,7 +1114,7 @@ function updateBullets(dt) {
       for (const e of enemies)
         if (e.alive && !b.hitIds?.includes(e) && hit(b, e)) {
           b.hitIds?.push(e);
-          damageEnemy(e, b.damage, b.echo);
+          damageEnemy(e, b.damage, b.echo, b);
           const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "enemy");
           b.pierce = impact.pierce;
           gone = impact.removed;
@@ -1143,11 +1153,37 @@ function updateBullets(dt) {
     if (gone) bullets.splice(i, 1);
   }
 }
-function damageEnemy(e, dmg, byEcho) {
+function combatText(x, y, text, color, strong = false) {
+  particles.push({
+    x,
+    y,
+    vx: 0,
+    vy: strong ? -34 : -24,
+    life: strong ? 0.62 : 0.42,
+    max: strong ? 0.62 : 0.42,
+    color,
+    size: strong ? 13 : 10,
+    text,
+  });
+}
+function damageEnemy(e, dmg, byEcho, impact = null) {
+  const critical = impact?.impactKind === "critical";
   e.hp -= dmg;
-  e.hitFlash = 0.09;
+  e.hitFlash = critical ? 0.14 : 0.09;
   e.hurt = 1;
-  burst(e.x, e.y, "#ff3f63", 5, 100);
+  const reaction = CombatFeedback.impactReaction(critical);
+  e.stun = Math.max(e.stun || 0, reaction.stun);
+  if (impact) {
+    const direction = norm(impact.vx || 0, impact.vy || 0);
+    moveActor(e, direction.x * reaction.knockback, direction.y * reaction.knockback);
+  }
+  sfx.enemyHit(critical);
+  burst(e.x, e.y, critical ? "#ffe0a6" : "#ff3f63", critical ? 10 : 5, critical ? 160 : 100);
+  if (critical) {
+    hitStop = Math.max(hitStop, 0.025);
+    shake = Math.max(shake, 3);
+    combatText(e.x, e.y - e.r - 10, "치명타", "#ffe0a6", true);
+  }
   if (e.hp <= 0) {
     e.alive = false;
     state.kills++;
@@ -1156,7 +1192,20 @@ function damageEnemy(e, dmg, byEcho) {
     state.score += e.score + state.combo * 20;
     if (byEcho) state.echoDamage += e.maxHp;
     state.lastKill = state.elapsed;
-    burst(e.x, e.y, "#ff4c70", 18, 200);
+    const elite = CombatFeedback.isElite(e);
+    sfx.kill(elite);
+    hitStop = Math.max(hitStop, elite ? 0.07 : 0.035);
+    if (elite) shake = Math.max(shake, 8);
+    burst(e.x, e.y, elite ? "#f0b76b" : "#ff4c70", elite ? 30 : 18, elite ? 260 : 200);
+    if (elite) combatText(e.x, e.y - e.r - 14, "정예 처치", "#f0b76b", true);
+    else if (state.combo >= CombatFeedback.config.comboFeedbackThreshold)
+      combatText(
+        e.x,
+        e.y - e.r - 10,
+        `${state.combo} 연속`,
+        "#d7d0bd",
+        state.combo >= CombatFeedback.config.strongComboThreshold
+      );
     monsterRemains(e);
     dropShard(e);
     if (e.behavior === "explode")
@@ -2563,7 +2612,11 @@ function renderParticles() {
   for (const p of particles) {
     ctx.globalAlpha = clamp(p.life / p.max, 0, 1) * (p.ghost ? 0.35 : 1);
     ctx.fillStyle = p.color;
-    if (p.shard) {
+    if (p.text) {
+      ctx.font = `${p.size}px ui-monospace, monospace`;
+      ctx.textAlign = "center";
+      ctx.fillText(p.text, p.x, p.y);
+    } else if (p.shard) {
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.life * 9);
