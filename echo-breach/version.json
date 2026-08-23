@@ -1,6 +1,6 @@
 {
   "name": "ECHO BREACH",
-  "version": "0.8.0",
-  "channel": "prototype",
+  "version": "0.9.0",
+  "channel": "release-candidate",
   "saveSchemaVersion": 3
 }

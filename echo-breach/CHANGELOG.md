@@ -2,6 +2,20 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.9.0] - 2026-08-23
+
+### Added
+
+- Converted Stages 2–5 into continuous camera worlds with distinct gate, rescue, hostile-record, and final-boss rules.
+- Added delayed hostile Echo replay and the three-phase PRIME Weaver finale.
+- Added adaptive procedural combat, tension, and boss music with saved music/effects volume controls.
+- Added the Stage 5 campaign ending and aggregate clear statistics.
+- Added twin-stick touch controls and standard gamepad combat/menu controls.
+
+### Tests
+
+- Expanded the deterministic Node regression suite to 98 tests covering audio, campaign completion, touch/gamepad input, five worlds, hostile Echoes, and bosses.
+
 ## [0.8.0] - 2026-08-23
 
 ### Changed

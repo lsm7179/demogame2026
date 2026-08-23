@@ -14,7 +14,7 @@ GitHub Pages 배포 주소(활성화 후): https://lsm7179.github.io/demogame202
 python3 -m http.server 8080
 ```
 
-브라우저에서 `http://localhost:8080`을 엽니다. 최신 데스크톱 Chrome, Firefox, Safari를 권장합니다.
+브라우저에서 `http://localhost:8080`을 엽니다. 데스크톱 Chrome을 기준으로 검증했으며 터치 조작과 표준 게임패드도 지원합니다.
 
 ## 개발 검사
 
@@ -39,18 +39,22 @@ npm run check
 - R: 현재 루프 조기 기록
 - Esc: 일시정지
 - M: 음소거
+- 게임패드: 왼쪽/오른쪽 스틱 이동·조준, A/RB 대시, Menu 일시정지
+- 모바일: 왼쪽 이동 스틱, 오른쪽 조준·자동 사격 스틱, 대시 버튼
 
 왼쪽 버튼은 현재 전투 기능에 사용하지 않습니다. 포인터가 게임 영역을 벗어나면 마지막 조준 방향은 유지되지만 자동 사격은 중단됩니다.
 
 ## 캠페인 흐름
 
-타이틀에서 새 캠페인 또는 계속하기를 선택하고 난이도와 해금된 스테이지를 고릅니다. 일반방은 35%, 정예방은 75%, Chrono Anchor는 100% 확률로 소유하지 않은 장비 후보를 최대 3개 제공합니다. Stage 1에서는 연속 전진을 끊지 않도록 중간 구역 장비 선택을 생략하고 Anchor 파괴 후 보상을 제공합니다. 스테이지 최초 클리어는 `결과 → 장비 → Chrono Crystal 업그레이드 → 구역 지도` 순서로 진행됩니다. Stage 4와 5는 이후 확장을 위한 잠금 카드와 데이터만 포함합니다.
+타이틀에서 새 캠페인 또는 계속하기를 선택하고 난이도와 해금된 스테이지를 고릅니다. 일반방은 35%, 정예방은 75%, Chrono Anchor는 100% 확률로 소유하지 않은 장비 후보를 최대 3개 제공합니다. 연속 전진 중에는 장비 선택으로 전투를 끊지 않고 Anchor 파괴 후 보상을 제공합니다. 스테이지 최초 클리어는 `결과 → 장비 → Chrono Crystal 업그레이드 → 구역 지도` 순서이며 Stage 5는 전용 캠페인 엔딩으로 이어집니다.
 
 ## 플레이 가능한 스테이지
 
 - **Stage 1 — AWAKENING:** 3900×1080 연속 월드에서 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER를 화면 전환 없이 돌파합니다. Echo는 이전 루프의 전체 월드 경로를 재생하며, 스위치를 맡은 Echo가 중앙 지름길을 여는 동안 현재 플레이어가 더 깊이 전진해 릴레이 2개와 Anchor를 공략합니다.
 - **Stage 2 — SPLIT CURRENT:** 스위치 제어실의 Echo가 사격을 계속해야 중앙 통로가 열리고 반대편 Anchor실로 진입할 수 있습니다.
 - **Stage 3 — RESCUE WINDOW:** 탈출선 격납고를 호위하는 기록을 남긴 뒤 연결 통로를 지나 릴레이실과 Anchor 제어실을 공략합니다.
+- **Stage 4 — CORRUPTED RECORD:** 현재 시간선은 2초 뒤, 완료 기록은 원래 시간대로 따라오는 오염된 Echo를 피해 기록 Anchor를 파괴합니다.
+- **Stage 5 — PRIME ANCHOR:** 세 수렴 릴레이를 Echo와 분담하고 동시 사격으로 PRIME Weaver의 방벽을 해제하는 3단계 최종전입니다.
 
 ECHO-07과 Echo는 머리·몸통·좌우 다리가 구분되는 8방향 탑다운 인간 요원으로 표현됩니다. 몸의 방향은 8방향으로 읽히지만 총기는 실제 마우스 조준각을 유지하며, 보행·사격 반동·대시 기울기·피격 움찔 애니메이션을 사용합니다. 시간 오염체는 추격형 **RIFT HOUND**, 원거리형 **SPORE CASTER**, 릴레이 차단형 **ANCHOR BRUTE**로 역할과 외형이 구분됩니다.
 
@@ -79,7 +83,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 
 ## 저장
 
-`echoBreachCampaign` 키에 버전 3 형식으로 기존 진행과 `loadout`, `equipmentOwned`를 저장합니다. 스키마 2 저장은 랭크·점수·해금·업그레이드·난이도를 유지한 채 빈 장비 상태로 명시적으로 마이그레이션됩니다. 잘못된 장비 ID, 슬롯 불일치와 중복은 제거됩니다. 새 캠페인은 확인 후 난이도를 선택할 때 장비와 업그레이드를 함께 초기화합니다.
+`echoBreachCampaign` 키에 버전 3 형식으로 기존 진행, `loadout`, `equipmentOwned`, 음악·효과음 볼륨과 캠페인 완료 상태를 저장합니다. 스키마 2 저장은 랭크·점수·해금·업그레이드·난이도를 유지한 채 빈 장비 상태로 명시적으로 마이그레이션됩니다. 잘못된 장비 ID, 슬롯 불일치와 중복은 제거됩니다. 새 캠페인은 확인 후 난이도를 선택할 때 장비와 업그레이드를 함께 초기화합니다.
 
 ## 파일 구조
 
@@ -89,7 +93,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `game-balance.js`: 자동 사격과 무기 핵심 밸런스 상수
 - `monster-data.js`: 시간 오염 몬스터 역할과 기존 전투 수치
 - `room-data.js`: Stage 2~3 방, 벽, 통로와 Stage 1 이전 구조의 회귀 데이터
-- `world-data.js`: Stage 1 연속 월드 크기, 구역, 벽, 적 웨이브, 스위치, 지름길과 Anchor 배치
+- `world-data.js`: Stage 1~5 연속 월드 크기, 구역, 벽, 웨이브, 위험 지대와 Anchor 배치
 - `world-core.js`: 카메라 추적, 화면/월드 좌표 변환, 구역 판정과 루프 초기화 순수 함수
 - `ui-core.js`: 반응형 미니맵 배치, 월드 투영, 화면 밖 표식과 상황 알림 순수 함수
 - `copy-data.js`: 한국어 기본 업그레이드·장비·도움말 문구와 영문 확장 구조
@@ -100,6 +104,11 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `equipment-data.js`: 9개 장비, 희귀도, 보상 확률과 안전 제한값
 - `equipment-core.js`: loadout, 후보, 장착, 저장 마이그레이션과 발사 프로필 순수 함수
 - `playtest-core.js`: 로컬 QA 실행의 이동·전투·Echo 기여 통계와 요약 순수 함수
+- `boss-data.js`, `boss-core.js`: 동시 사격 방벽과 다단계 보스 패턴
+- `corrupted-echo-core.js`: 적대적 기록의 시간 보간과 발사 이벤트 재생
+- `audio-core.js`: 전투 깊이에 따른 절차적 음악과 저장 볼륨 정규화
+- `campaign-core.js`: 최종 승리 판정과 캠페인 기록 요약
+- `input-core.js`: 터치·표준 게임패드 스틱과 데드존 계산
 - `version.json`: 공개 게임 버전과 저장 스키마 버전
 - `manifest.webmanifest`: 설치·출시 메타데이터
 - `README.md`: 실행 및 기능 안내
@@ -107,13 +116,13 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `QA_BASELINE.md`: 기술 부채 정리 전 회귀 기준값
 - `tests/`: Node 내장 테스트 러너 기반 자동 회귀 테스트
 
-로컬 UI 검수는 정적 서버에서 `?ui-preview=equipment` 또는 `?ui-preview=upgrade`를 붙여 보상 화면을 직접 열 수 있습니다. 이 진입점은 `localhost`와 `127.0.0.1`에서만 동작합니다.
+로컬 UI 검수는 `?ui-preview=equipment`, `upgrade`, `pause`, `ending`으로 선택·설정·엔딩 화면을 직접 열 수 있습니다. `?stage-preview=1~5&zone=1~3`은 연속 월드 구역을 엽니다. 이 진입점은 `localhost`와 `127.0.0.1`에서만 동작합니다.
 
 로컬 Stage 1 플레이 기록은 출시 저장과 분리된 `echoBreachPlaytestsV2` 키에 최근 50회까지 보관됩니다. `?playtest-report=1`은 로컬 서버에서만 요약과 원본 기록을 보여주며 배포 호스트에서는 활성화되지 않습니다.
 
 ## 알려진 제한사항과 다음 후보
 
-모바일 조작, 게임패드, 배경 음악, Stage 4 적 Echo, Stage 5 다부위 보스는 아직 없습니다. 실제 플레이 데이터에 따라 릴레이 감소율, Stage 2 스위치 유지량, Stage 3 탈출선 체력, 랭크 임계값을 조정해야 합니다.
+실제 터치 기기와 물리 게임패드, Safari·Firefox, 30분 연속 플레이는 추가 실기 검증이 필요합니다. 실제 플레이 데이터에 따라 릴레이 감소율, Stage 2 스위치 유지량, Stage 3 탈출선 체력, Stage 4 오염 Echo 피해와 Stage 5 패턴 간격을 조정해야 합니다.
 
 전투 HUD는 상단 시간선 정보, 좌측 하단 생존 상태, 하단 장비, 우측 하단 Overdrive, 우측 상단 전술 미니맵으로 분리됩니다. 미니맵은 플레이어·Echo·적·릴레이·Anchor를 형태와 색으로 함께 구분하며, 작은 화면에서는 HUD 크기와 간격을 축소합니다. 운영체제에서 동작 감소를 요청하면 화면 흔들림과 시간 왜곡이 완화됩니다.
 
