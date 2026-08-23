@@ -966,16 +966,13 @@ function queueEnemies() {
   warnings = [];
   const world = activeWorld();
   if (world) {
-    let index = 0;
     for (const zone of world.zones)
-      zone.waves.forEach((type, waveIndex) => {
-        warnings.push({
-          ...zone.spawnPoints[waveIndex % zone.spawnPoints.length],
-          type,
-          timer: 0.7 + index++ * 0.13,
+      warnings.push(
+        ...WaveCore.expandZoneWaves(zone).map((warning) => ({
+          ...warning,
           targetShuttle: false,
-        });
-      });
+        }))
+      );
     return;
   }
   const encounter = currentEncounter();
@@ -2780,9 +2777,12 @@ function update(dt) {
   updateCameraTracking(dt);
   updatePlayer(dt);
   updateEchoes(dt);
+  const currentZoneId = activeWorld()?.zones
+    ? WorldCore.zoneAt(activeWorld().zones, player)?.id
+    : null;
   for (let i = warnings.length - 1; i >= 0; i--) {
-    warnings[i].timer -= dt;
-    if (warnings[i].timer <= 0) {
+    warnings[i] = WaveCore.tickWarning(warnings[i], dt, currentZoneId);
+    if (warnings[i].armed !== false && warnings[i].timer <= 0) {
       spawnEnemy(warnings[i]);
       warnings.splice(i, 1);
     }

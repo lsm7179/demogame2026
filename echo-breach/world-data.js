@@ -21,6 +21,10 @@
         h: 920,
         objective: "eliminate",
         waves: ["chaser", "leech", "shooter", "chaser"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "skirmish", enemies: ["chaser", "leech"] },
+          { delay: 5.2, rhythm: "pressure", enemies: ["shooter", "chaser"] },
+        ],
         spawnPoints: [
           { x: 520, y: 310 },
           { x: 610, y: 760 },
@@ -37,6 +41,11 @@
         h: 920,
         objective: "elite",
         waves: ["blocker", "exploder", "chaser", "shooter", "exploder"],
+        waveGroups: [
+          { delay: 0.7, rhythm: "burst", enemies: ["chaser", "exploder"] },
+          { delay: 4.5, rhythm: "pressure", enemies: ["shooter", "exploder"] },
+          { delay: 8.2, rhythm: "elite", enemies: ["blocker"], elite: true },
+        ],
         spawnPoints: [
           { x: 1360, y: 280 },
           { x: 1590, y: 760 },
@@ -54,6 +63,10 @@
         h: 920,
         objective: "anchor",
         waves: ["core-guard", "shooter", "chaser", "blocker"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "defense", enemies: ["shooter", "chaser"] },
+          { delay: 5.4, rhythm: "elite", enemies: ["core-guard", "blocker"], elite: true },
+        ],
         spawnPoints: [
           { x: 2780, y: 250 },
           { x: 2810, y: 820 },
@@ -125,6 +138,11 @@
           Object.freeze({
             ...zone,
             waves: Object.freeze(zone.waves.slice()),
+            waveGroups: Object.freeze(
+              (zone.waveGroups || []).map((group) =>
+                Object.freeze({ ...group, enemies: Object.freeze(group.enemies.slice()) })
+              )
+            ),
             spawnPoints: Object.freeze(
               zone.spawnPoints.map((point) => Object.freeze({ ...point }))
             ),
