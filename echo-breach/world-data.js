@@ -437,6 +437,106 @@
     },
   };
 
+  const primeAnchor = {
+    mode: "continuous",
+    width: 4700,
+    height: 1120,
+    cameraFollowRate: 7.8,
+    playerStart: { x: 130, y: 560 },
+    hazards: [
+      { id: "prime-rift-a", x: 1240, y: 160, w: 280, h: 260, damage: 10, interval: 0.8 },
+      { id: "prime-rift-b", x: 1890, y: 710, w: 340, h: 250, damage: 10, interval: 0.8 },
+    ],
+    zones: [
+      {
+        id: "ai-causeway",
+        name: "중앙 AI 진입로",
+        x: 40,
+        y: 80,
+        w: 1420,
+        h: 960,
+        objective: "advance",
+        waves: ["shooter", "corrupted-echo", "blocker"],
+        waveGroups: [
+          { delay: 0.8, rhythm: "gauntlet", enemies: ["shooter", "blocker"] },
+          { delay: 5.2, rhythm: "memory", enemies: ["corrupted-echo"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 650, y: 260 },
+          { x: 920, y: 850 },
+          { x: 1300, y: 550 },
+        ],
+      },
+      {
+        id: "convergence-array",
+        name: "수렴 배열",
+        x: 1460,
+        y: 80,
+        w: 1540,
+        h: 960,
+        objective: "synchronize",
+        waves: ["core-guard", "exploder", "corrupted-echo"],
+        waveGroups: [
+          { delay: 0.7, rhythm: "convergence", enemies: ["core-guard", "exploder"] },
+          { delay: 6, rhythm: "memory", enemies: ["corrupted-echo"], elite: true },
+        ],
+        spawnPoints: [
+          { x: 1740, y: 230 },
+          { x: 2210, y: 880 },
+          { x: 2760, y: 250 },
+        ],
+      },
+      {
+        id: "prime-chamber",
+        name: "PRIME CHAMBER",
+        x: 3000,
+        y: 80,
+        w: 1660,
+        h: 960,
+        objective: "final-boss",
+        waves: ["prime-weaver", "core-guard", "corrupted-echo"],
+        waveGroups: [
+          { delay: 0.9, rhythm: "boss", enemies: ["prime-weaver"], elite: true },
+          { delay: 4.8, rhythm: "support", enemies: ["core-guard", "corrupted-echo"] },
+        ],
+        spawnPoints: [
+          { x: 3910, y: 560 },
+          { x: 3290, y: 220 },
+          { x: 3360, y: 900 },
+        ],
+      },
+    ],
+    walls: [
+      { x: 650, y: 80, w: 30, h: 350 },
+      { x: 650, y: 690, w: 30, h: 350 },
+      { x: 1460, y: 80, w: 32, h: 370 },
+      { x: 1460, y: 670, w: 32, h: 370 },
+      { x: 2030, y: 300, w: 320, h: 28 },
+      { x: 2030, y: 792, w: 320, h: 28 },
+      { x: 3000, y: 80, w: 32, h: 370 },
+      { x: 3000, y: 670, w: 32, h: 370 },
+      { x: 3620, y: 320, w: 300, h: 28 },
+      { x: 3620, y: 772, w: 300, h: 28 },
+    ],
+    switches: [],
+    shortcuts: [],
+    objective: {
+      core: { x: 4320, y: 560 },
+      relayPositions: [
+        { x: 3760, y: 220 },
+        { x: 3760, y: 900 },
+        { x: 4140, y: 560 },
+      ],
+      relayCount: 3,
+      requiredRelays: 3,
+      relayChargeMax: 100,
+      relayGain: 12,
+      relayDecay: 8,
+      shieldOpenSeconds: 5.3,
+      movingRelayIndex: -1,
+    },
+  };
+
   function freezeWorld(world) {
     return Object.freeze({
       ...world,
@@ -477,5 +577,6 @@
     "split-current": freezeWorld(splitCurrent),
     "rescue-window": freezeWorld(rescueWindow),
     "corrupted-record": freezeWorld(corruptedRecord),
+    "prime-anchor": freezeWorld(primeAnchor),
   });
 });

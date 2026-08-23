@@ -30,5 +30,17 @@
       projectileSpeed: 205,
       projectileDamage: 11,
     }),
+    "prime-weaver": Object.freeze({
+      id: "prime-weaver",
+      tier: "final-boss",
+      shieldSyncWindow: 0.4,
+      shieldOpenSeconds: 3.6,
+      phaseThresholds: Object.freeze([0.68, 0.34]),
+      attackCooldowns: Object.freeze([3.2, 2.55, 2.05]),
+      projectileCounts: Object.freeze([8, 12, 16]),
+      projectileSpeeds: Object.freeze([190, 215, 235]),
+      projectileDamages: Object.freeze([10, 11, 12]),
+      telegraphSeconds: 0.95,
+    }),
   });
 });

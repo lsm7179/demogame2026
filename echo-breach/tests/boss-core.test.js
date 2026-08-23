@@ -22,3 +22,14 @@ test("final boss phase two changes pattern without hidden attacks", () => {
   assert.ok(second.cooldown < first.cooldown);
   assert.ok(second.telegraphSeconds >= 0.7);
 });
+
+test("Prime Weaver exposes three telegraphed phases through data", () => {
+  const config = BossData["prime-weaver"];
+  assert.equal(BossCore.phaseFor(760, 760, config), 1);
+  assert.equal(BossCore.phaseFor(500, 760, config), 2);
+  assert.equal(BossCore.phaseFor(250, 760, config), 3);
+  const phases = [1, 2, 3].map((phase) => BossCore.attackProfile(config, phase));
+  assert.ok(phases[2].projectileCount > phases[1].projectileCount);
+  assert.ok(phases[2].cooldown < phases[0].cooldown);
+  assert.ok(phases.every((profile) => profile.telegraphSeconds >= 0.9));
+});

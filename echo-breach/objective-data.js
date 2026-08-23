@@ -42,6 +42,11 @@
       { x: 430, y: 210 },
       { x: 850, y: 460 },
     ]),
+    "prime-anchor": objective("anchor", { x: 640, y: 335 }, [
+      { x: 420, y: 190 },
+      { x: 860, y: 190 },
+      { x: 640, y: 520 },
+    ]),
   };
 
   function isValid(config) {

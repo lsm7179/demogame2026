@@ -30,3 +30,10 @@ test("objective validation rejects impossible relay requirements", () => {
     false
   );
 });
+
+test("Prime Anchor requires three simultaneous relay roles", () => {
+  const prime = objectives["prime-anchor"];
+  assert.equal(objectives.isValid(prime), true);
+  assert.equal(prime.relayCount, 3);
+  assert.equal(prime.requiredRelays, 3);
+});

@@ -114,3 +114,13 @@ test("Stage 4 is a continuous memory vault with corrupted Echo encounters", () =
     ).length >= 2
   );
 });
+
+test("Stage 5 combines hazards, corrupted records, and a data-driven final boss", () => {
+  const world = worlds["prime-anchor"];
+  assert.equal(world.mode, "continuous");
+  assert.equal(world.objective.requiredRelays, 3);
+  assert.ok(world.hazards.length >= 2);
+  const finalZone = world.zones.at(-1);
+  assert.equal(finalZone.objective, "final-boss");
+  assert.ok(finalZone.waveGroups.some((group) => group.enemies.includes("prime-weaver")));
+});

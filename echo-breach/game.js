@@ -164,20 +164,22 @@ const STAGES = [
     number: 5,
     name: "PRIME ANCHOR",
     subtitle: "Central AI Core",
-    briefing: ["중앙 AI 접속 대기."],
-    arena: { type: "locked" },
+    briefing: [
+      "중앙 AI가 모든 시간선을 PRIME Anchor에 결속했다.",
+      "세 수렴점을 Echo와 동기화하고 중앙 의식을 정지시켜라.",
+    ],
+    arena: { type: "continuous", tint: "#0d0a05" },
     visual: {
       color: "#ffd36f",
       motif: "prime",
       preview: "linear-gradient(145deg,#352b14,#0d0a05 62%)",
     },
-    difficulty: {},
-    objective: { type: "future" },
-    waves: [],
+    difficulty: { coreHp: 900 },
+    objective: ObjectiveData["prime-anchor"],
+    waves: [["prime-weaver", "core-guard", "corrupted-echo"]],
     unlock: 5,
-    rewards: [],
-    ranks: { S: 1, A: 1, B: 1 },
-    locked: true,
+    rewards: ["time", "weapon", "hull"],
+    ranks: { S: 1250, A: 940, B: 680 },
   },
 ];
 const UPGRADES = [
@@ -973,6 +975,7 @@ function enemyStats(type) {
     behavior: m.behavior,
     boss: m.boss,
     elite: m.elite,
+    stageGuardian: m.stageGuardian,
   };
 }
 function queueEnemies() {
@@ -1014,6 +1017,7 @@ function spawnEnemy(w) {
     behavior: q.behavior,
     boss: q.boss,
     elite: w.elite || q.elite,
+    stageGuardian: q.stageGuardian,
     bossConfig: BossData[w.type] || null,
     bossState: {},
     bossPhase: 1,
@@ -1077,7 +1081,7 @@ function bossVolley(e) {
       py: e.y,
       vx: Math.cos(a) * profile.projectileSpeed * diff.enemyBullet,
       vy: Math.sin(a) * profile.projectileSpeed * diff.enemyBullet,
-      r: e.bossPhase === 2 ? 7 : 6,
+      r: e.bossPhase >= 3 ? 8 : e.bossPhase === 2 ? 7 : 6,
       life: 4,
       team: "enemy",
       sourceType: e.type,
@@ -1085,7 +1089,7 @@ function bossVolley(e) {
     });
   }
   burst(e.x, e.y, "#c96b7a", 18, 150);
-  tone("sawtooth", e.bossPhase === 2 ? 105 : 135, 0.22, 0.055, -35);
+  tone("sawtooth", e.bossPhase >= 3 ? 82 : e.bossPhase === 2 ? 105 : 135, 0.22, 0.055, -35);
 }
 function updateEnemies(dt) {
   for (const e of enemies) {
@@ -1241,8 +1245,8 @@ function updateBullets(dt) {
           }
       if (!gone && anchorActive() && hit(b, core)) {
         const guardianPending =
-          enemies.some((enemy) => enemy.alive && enemy.type === "chrono-abomination") ||
-          warnings.some((warning) => warning.type === "chrono-abomination");
+          enemies.some((enemy) => enemy.alive && enemy.stageGuardian) ||
+          warnings.some((warning) => MonsterData[warning.type]?.stageGuardian);
         if (state.shieldTimer > 0 && !guardianPending) {
           damageCore(b.damage * (b.coreDamageMultiplier || 1), b.echo);
           burst(b.x, b.y, "#fff", 6, 85);
@@ -1901,7 +1905,7 @@ function endStage(win) {
       score: Math.max(old.score || 0, final),
       rank: betterRank(old.rank, rank.rank),
     };
-    save.unlockedStage = Math.max(save.unlockedStage, Math.min(4, stage.number + 1));
+    save.unlockedStage = Math.max(save.unlockedStage, Math.min(5, stage.number + 1));
     save.hasCampaign = true;
     state.firstClear = !old.rank;
     persist();
@@ -2633,7 +2637,17 @@ function renderEnemies() {
 }
 function renderSpecialMonster(e, monster, pulse) {
   ctx.fillStyle = e.hitFlash > 0 ? "#fff" : monster.color;
-  if (monster.visual === "corrupted") {
+  if (monster.visual === "prime") {
+    poly(0, 0, e.r * pulse, 8, Math.PI / 8);
+    ctx.fill();
+    ctx.strokeStyle = monster.accent;
+    ctx.lineWidth = 4;
+    for (const radius of [e.r * 0.5, e.r + 10]) {
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, e.wobble, e.wobble + Math.PI * 1.35);
+      ctx.stroke();
+    }
+  } else if (monster.visual === "corrupted") {
     ctx.globalAlpha = 0.82;
     ctx.strokeStyle = monster.accent;
     ctx.lineWidth = 4;
@@ -3115,7 +3129,7 @@ function openLocalUiPreview() {
   if (preview === "equipment") showEquipmentSelection("stage");
   if (preview === "upgrade") showUpgrades();
   const stagePreview = Number(params.get("stage-preview"));
-  if ([2, 3, 4].includes(stagePreview)) {
+  if ([2, 3, 4, 5].includes(stagePreview)) {
     stage = STAGES.find((item) => item.number === stagePreview);
     startStage();
     const world = activeWorld();

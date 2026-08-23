@@ -17,9 +17,22 @@
     return (state.shieldOpenUntil || 0) > time;
   }
   function phaseFor(hp, maxHp, config) {
+    if (Array.isArray(config.phaseThresholds)) {
+      const ratio = hp / Math.max(1, maxHp);
+      return 1 + config.phaseThresholds.filter((threshold) => ratio <= threshold).length;
+    }
     return hp / Math.max(1, maxHp) <= (config.phaseThreshold ?? 0) ? 2 : 1;
   }
   function attackProfile(config, phase) {
+    const index = Math.max(0, phase - 1);
+    if (config.attackCooldowns)
+      return {
+        cooldown: config.attackCooldowns[index] ?? config.attackCooldowns.at(-1),
+        projectileCount: config.projectileCounts[index] ?? config.projectileCounts.at(-1),
+        projectileSpeed: config.projectileSpeeds[index] ?? config.projectileSpeeds.at(-1),
+        projectileDamage: config.projectileDamages[index] ?? config.projectileDamages.at(-1),
+        telegraphSeconds: config.telegraphSeconds,
+      };
     return {
       cooldown:
         phase === 2 ? config.phaseTwoCooldown || config.attackCooldown : config.attackCooldown,

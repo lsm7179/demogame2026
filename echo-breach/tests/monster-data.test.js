@@ -44,6 +44,12 @@ test("corrupted Echo is a distinct record-replay threat", () => {
   assert.ok(monster.hp > MonsterData.shooter.hp);
 });
 
+test("Prime Weaver and the Stage 1 guardian both gate their anchors", () => {
+  assert.equal(monsters["prime-weaver"].stageGuardian, true);
+  assert.equal(monsters["chrono-abomination"].stageGuardian, true);
+  assert.equal(monsters["prime-weaver"].boss, true);
+});
+
 test("relay guards fall back to the room core when a combat room has no relays", () => {
   const core = { x: 640, y: 335 };
   assert.equal(monsters.selectGuardTarget([], core, { x: 100, y: 100 }), core);
