@@ -373,6 +373,7 @@ function freshState() {
     bestCombo: 0,
     lastKill: -9,
     lastEchoKill: -9,
+    synergyKillState: {},
     noHit: true,
     shieldTimer: 0,
     ending: false,
@@ -397,6 +398,7 @@ function freshState() {
     deathCause: null,
     anchorPhase: "armored",
     overloadText: 0,
+    overloadLabel: "시간 과부하",
     collapsing: false,
     roomRewardResolved: false,
     shieldRefresh: true,
@@ -1012,6 +1014,7 @@ function spawnEnemy(w) {
     bossConfig: BossData[w.type] || null,
     bossState: {},
     bossPhase: 1,
+    synergyState: {},
     attackTimer: 1.4,
     telegraph: 0,
     alive: true,
@@ -1220,7 +1223,7 @@ function combatText(x, y, text, color, strong = false) {
     text,
   });
 }
-function damageEnemy(e, dmg, byEcho, impact = null) {
+function damageEnemy(e, dmg, byEcho, impact = null, skipSynergy = false) {
   const critical = impact?.impactKind === "critical";
   if (e.bossConfig && !BossCore.shieldOpen(e.bossState, state.elapsed)) {
     const sync = BossCore.registerShieldHit(e.bossState, byEcho, state.elapsed, e.bossConfig);
@@ -1231,6 +1234,15 @@ function damageEnemy(e, dmg, byEcho, impact = null) {
       timeWarp = 0.42;
       sfx.shield();
     } else return;
+  }
+  if (!skipSynergy) {
+    const synergy = SynergyCore.registerHit(e.synergyState, byEcho, state.elapsed);
+    e.synergyState = synergy.state;
+    if (synergy.crossfire) {
+      dmg += SynergyCore.config.crossfireBonusDamage;
+      combatText(e.x, e.y - e.r - 16, "교차 사격", "#73c9bf", true);
+      burst(e.x, e.y, "#73c9bf", 12, 175);
+    }
   }
   e.hp -= dmg;
   e.hitFlash = critical ? 0.14 : 0.09;
@@ -1257,6 +1269,8 @@ function damageEnemy(e, dmg, byEcho, impact = null) {
     if (byEcho) state.echoDamage += e.maxHp;
     state.lastKill = state.elapsed;
     const elite = CombatFeedback.isElite(e);
+    const chain = SynergyCore.registerKill(state.synergyKillState, byEcho, state.elapsed);
+    state.synergyKillState = chain.state;
     sfx.kill(elite);
     hitStop = Math.max(hitStop, elite ? 0.07 : 0.035);
     if (elite) shake = Math.max(shake, 8);
@@ -1270,6 +1284,17 @@ function damageEnemy(e, dmg, byEcho, impact = null) {
         "#d7d0bd",
         state.combo >= CombatFeedback.config.strongComboThreshold
       );
+    if (chain.chain) {
+      combatText(e.x, e.y - e.r - 24, "시간 연쇄", "#73c9bf", true);
+      burst(e.x, e.y, "#73c9bf", 22, 220);
+      for (const target of enemies)
+        if (
+          target !== e &&
+          target.alive &&
+          Math.hypot(target.x - e.x, target.y - e.y) <= SynergyCore.config.chainRadius
+        )
+          damageEnemy(target, SynergyCore.config.chainDamage, byEcho, null, true);
+    }
     monsterRemains(e);
     dropShard(e);
     if (e.behavior === "explode")
@@ -1495,12 +1520,15 @@ function tryTemporalOverload() {
   const bonus =
     GameBalance.overload.bonusDamage *
     stats.overloadDamageMultiplier *
-    (state.overdriveTimer > 0 ? GameBalance.overload.overdriveBonus : 1);
+    (state.overdriveTimer > 0 ? GameBalance.overload.overdriveBonus : 1) *
+    SynergyCore.convergenceMultiplier(echoes.length);
   core.hp = Math.max(0, core.hp - bonus);
   state.coreDamage += bonus;
   state.lastOverload = state.elapsed;
   state.overloads++;
   state.overloadText = 0.8;
+  state.overloadLabel =
+    echoes.length >= SynergyCore.config.convergenceEchoes ? "ECHO 수렴" : "시간 과부하";
   state.score += bonus * 8;
   hitStop = 0.055;
   shake = 8;
@@ -2162,7 +2190,7 @@ function render() {
     ctx.fillStyle = `rgba(190,255,249,${clamp(state.overloadText * 1.4, 0, 1)})`;
     ctx.font = "700 24px monospace";
     ctx.textAlign = "center";
-    ctx.fillText("TEMPORAL OVERLOAD", innerWidth / 2, innerHeight * 0.28);
+    ctx.fillText(state.overloadLabel, innerWidth / 2, innerHeight * 0.28);
     ctx.textAlign = "start";
   }
   if (flash > 0) {
