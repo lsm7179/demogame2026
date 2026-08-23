@@ -1175,6 +1175,10 @@ function spawnEnemy(w) {
     bossConfig: BossData[w.type] || null,
     bossState: {},
     bossPhase: 1,
+    bossAttackIndex: 0,
+    bossPattern: "radial",
+    bossAim: 0,
+    bossDash: 0,
     synergyState: {},
     attackTimer: 1.4,
     telegraph: 0,
@@ -1225,23 +1229,64 @@ function corruptedEchoShoot(e, angle) {
   e.telegraph = 0.08;
   burst(e.x, e.y, "#c94d72", 5, 70);
 }
+function bossProjectile(e, angle, profile, speedMultiplier = 1) {
+  bullets.push({
+    x: e.x + Math.cos(angle) * (e.r + 8),
+    y: e.y + Math.sin(angle) * (e.r + 8),
+    px: e.x,
+    py: e.y,
+    vx: Math.cos(angle) * profile.projectileSpeed * speedMultiplier * diff.enemyBullet,
+    vy: Math.sin(angle) * profile.projectileSpeed * speedMultiplier * diff.enemyBullet,
+    r: e.bossPhase >= 3 ? 8 : e.bossPhase === 2 ? 7 : 6,
+    life: 4,
+    team: "enemy",
+    sourceType: e.type,
+    damage: profile.projectileDamage,
+  });
+}
+function bossFan(e, profile, angle, count = profile.projectileCount, spread = Math.PI / 3) {
+  for (let i = 0; i < count; i++) {
+    const offset = count === 1 ? 0 : (i / (count - 1) - 0.5) * spread;
+    bossProjectile(e, angle + offset, profile);
+  }
+}
 function bossVolley(e) {
   const profile = BossCore.attackProfile(e.bossConfig, e.bossPhase);
-  for (let i = 0; i < profile.projectileCount; i++) {
-    const a = (i / profile.projectileCount) * Math.PI * 2 + e.wobble * 0.2;
-    bullets.push({
-      x: e.x + Math.cos(a) * (e.r + 8),
-      y: e.y + Math.sin(a) * (e.r + 8),
-      px: e.x,
-      py: e.y,
-      vx: Math.cos(a) * profile.projectileSpeed * diff.enemyBullet,
-      vy: Math.sin(a) * profile.projectileSpeed * diff.enemyBullet,
-      r: e.bossPhase >= 3 ? 8 : e.bossPhase === 2 ? 7 : 6,
-      life: 4,
-      team: "enemy",
-      sourceType: e.type,
-      damage: profile.projectileDamage,
-    });
+  const pattern = e.bossPattern || "radial";
+  if (["fan", "pursuit-fan", "echo-fan"].includes(pattern)) {
+    bossFan(e, profile, e.bossAim, profile.projectileCount, pattern === "fan" ? 0.58 : 0.82);
+  } else if (pattern === "charge") {
+    e.bossDash = e.bossConfig.dashSeconds;
+    e.dashX = Math.cos(e.bossAim);
+    e.dashY = Math.sin(e.bossAim);
+  } else if (pattern === "barrier-lines") {
+    for (const lane of [-2, -1, 0, 1, 2])
+      bossProjectile(e, e.bossAim + lane * 0.12, profile, lane === 0 ? 0.78 : 1);
+  } else if (pattern === "corrupt-summon") {
+    if (enemies.filter((enemy) => enemy.alive && enemy.type === "corrupted-echo").length < 3)
+      for (const side of [-1, 1])
+        warnings.push({
+          x: clamp(e.x + side * 150, 70, worldSize().width - 70),
+          y: clamp(e.y + side * 110, 70, worldSize().height - 70),
+          type: "corrupted-echo",
+          timer: 0.7,
+          armed: true,
+          elite: true,
+        });
+  } else if (pattern === "memory-volley") {
+    const targets = [player, ...echoes.filter((echo) => !echo.finished)].slice(0, 4);
+    for (const target of targets)
+      bossFan(e, profile, Math.atan2(target.y - e.y, target.x - e.x), 3, 0.22);
+  } else {
+    const safeAngle = e.bossAim;
+    for (let i = 0; i < profile.projectileCount; i++) {
+      const angle = (i / profile.projectileCount) * Math.PI * 2 + e.wobble * 0.2;
+      const safeDelta = Math.abs(
+        Math.atan2(Math.sin(angle - safeAngle), Math.cos(angle - safeAngle))
+      );
+      if (pattern === "safe-sector" && safeDelta < 0.42) continue;
+      bossProjectile(e, angle, profile, pattern === "rift-ring" ? 0.82 : 1);
+    }
   }
   burst(e.x, e.y, "#c96b7a", 18, 150);
   tone("sawtooth", e.bossPhase >= 3 ? 82 : e.bossPhase === 2 ? 105 : 135, 0.22, 0.055, -35);
@@ -1293,6 +1338,13 @@ function updateEnemies(dt) {
       const phase = BossCore.phaseFor(e.hp, e.maxHp, e.bossConfig);
       if (phase !== e.bossPhase) {
         e.bossPhase = phase;
+        e.bossAttackIndex = 0;
+        if (e.type === "chrono-abomination" && phase === 2) {
+          e.x = core.x - 260;
+          e.y = core.y;
+          bullets = bullets.filter((bullet) => bullet.team === "player");
+          burst(e.x, e.y, "#c94d72", 36, 260);
+        }
         timeWarp = 0.45;
         shake = 8;
         combatText(e.x, e.y - e.r - 18, "패턴 변화", "#f0b76b", true);
@@ -1303,6 +1355,13 @@ function updateEnemies(dt) {
         if (e.telegraph <= 0) bossVolley(e);
       } else if (e.attackTimer <= 0) {
         const profile = BossCore.attackProfile(e.bossConfig, e.bossPhase);
+        e.bossPattern = BossCore.patternFor(e.bossConfig, e.bossPhase, e.bossAttackIndex++);
+        const echoTarget = echoes.find((echo) => !echo.finished);
+        const target = e.bossPattern === "echo-fan" && echoTarget ? echoTarget : player;
+        e.bossAim =
+          e.bossPattern === "safe-sector"
+            ? e.wobble + Math.PI
+            : Math.atan2(target.y - e.y, target.x - e.x);
         e.telegraph = profile.telegraphSeconds;
         e.attackTimer = profile.cooldown + profile.telegraphSeconds;
       }
@@ -1335,6 +1394,15 @@ function updateEnemies(dt) {
     if (["pursue", "leech", "explode"].includes(e.behavior)) {
       tx += Math.sin(e.wobble) * 32;
       ty += Math.cos(e.wobble * 0.8) * 32;
+    }
+    if (e.bossDash > 0) {
+      e.bossDash -= dt;
+      moveActor(e, e.dashX * e.bossConfig.dashSpeed * dt, e.dashY * e.bossConfig.dashSpeed * dt);
+      if (hit(e, player) && e.touch <= 0) {
+        hurtPlayer(e.bossConfig.projectileDamage + 4, e);
+        e.touch = 0.7;
+      }
+      continue;
     }
     const n = norm(tx - e.x, ty - e.y);
     e.vx = n.x * e.speed;
@@ -2916,6 +2984,26 @@ function renderEnemies() {
             -Math.PI / 2 + Math.PI * 2 * (1 - e.telegraph / profile.telegraphSeconds)
           );
           ctx.stroke();
+          const facing = Math.atan2(target.y - e.y, target.x - e.x);
+          ctx.save();
+          ctx.rotate(e.bossAim - facing);
+          ctx.strokeStyle = "rgba(255,116,132,.72)";
+          ctx.lineWidth = 2;
+          if (
+            ["charge", "fan", "pursuit-fan", "echo-fan", "barrier-lines"].includes(e.bossPattern)
+          ) {
+            ctx.beginPath();
+            ctx.moveTo(e.r + 8, 0);
+            ctx.lineTo(e.r + (e.bossPattern === "charge" ? 300 : 180), 0);
+            ctx.stroke();
+          } else if (e.bossPattern === "safe-sector") {
+            ctx.beginPath();
+            ctx.arc(0, 0, e.r + 46, -0.42, 0.42);
+            ctx.strokeStyle = "rgba(115,201,191,.85)";
+            ctx.lineWidth = 7;
+            ctx.stroke();
+          }
+          ctx.restore();
         }
       }
       ctx.restore();

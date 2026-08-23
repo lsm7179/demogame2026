@@ -15,6 +15,9 @@
       projectileCount: 5,
       projectileSpeed: 185,
       projectileDamage: 10,
+      dashSpeed: 520,
+      dashSeconds: 0.34,
+      patternSets: Object.freeze([Object.freeze(["charge", "fan", "echo-fan"])]),
     }),
     "chrono-abomination": Object.freeze({
       id: "chrono-abomination",
@@ -29,6 +32,10 @@
       phaseTwoProjectileCount: 12,
       projectileSpeed: 205,
       projectileDamage: 11,
+      patternSets: Object.freeze([
+        Object.freeze(["pursuit-fan", "radial"]),
+        Object.freeze(["rift-ring", "safe-sector"]),
+      ]),
     }),
     "prime-weaver": Object.freeze({
       id: "prime-weaver",
@@ -41,6 +48,11 @@
       projectileSpeeds: Object.freeze([190, 215, 235]),
       projectileDamages: Object.freeze([10, 11, 12]),
       telegraphSeconds: 0.95,
+      patternSets: Object.freeze([
+        Object.freeze(["barrier-lines", "fan"]),
+        Object.freeze(["corrupt-summon", "memory-volley"]),
+        Object.freeze(["convergence-burst", "safe-sector"]),
+      ]),
     }),
   });
 });

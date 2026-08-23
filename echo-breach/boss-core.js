@@ -45,5 +45,9 @@
       telegraphSeconds: config.telegraphSeconds,
     };
   }
-  return Object.freeze({ registerShieldHit, shieldOpen, phaseFor, attackProfile });
+  function patternFor(config, phase, attackIndex = 0) {
+    const set = config.patternSets?.[Math.max(0, phase - 1)] || ["radial"];
+    return set[Math.max(0, attackIndex) % set.length];
+  }
+  return Object.freeze({ registerShieldHit, shieldOpen, phaseFor, attackProfile, patternFor });
 });
