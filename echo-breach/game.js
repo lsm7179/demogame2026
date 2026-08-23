@@ -308,9 +308,10 @@ let raf = 0,
   transitionTimer = 0,
   audio = null,
   muted = save.muted,
-  view = { scale: 1, ox: 0, oy: 0 };
+  view = { scale: 1, ox: 0, oy: 0 },
+  camera = { x: 0, y: 0 };
 const keys = Object.create(null),
-  mouse = { x: 640, y: 360, inside: false };
+  mouse = { x: 640, y: 360, sx: 640, sy: 360, inside: false };
 function freshState() {
   return {
     mode: "title",
@@ -441,8 +442,9 @@ function bindInputs() {
   addEventListener("keyup", (e) => (keys[e.code] = false));
   canvas.addEventListener("pointermove", (e) => {
     const r = canvas.getBoundingClientRect();
-    mouse.x = (e.clientX - r.left - view.ox) / view.scale;
-    mouse.y = (e.clientY - r.top - view.oy) / view.scale;
+    mouse.sx = e.clientX - r.left;
+    mouse.sy = e.clientY - r.top;
+    updateMouseWorld();
     mouse.inside = true;
   });
   canvas.addEventListener("pointerenter", () => {
@@ -521,12 +523,43 @@ function poly(x, y, r, n, rot = 0) {
   }
   ctx.closePath();
 }
+function activeWorld() {
+  const world = WorldData[stage?.id];
+  return world?.mode === "continuous" ? world : null;
+}
+function worldSize() {
+  const world = activeWorld();
+  return { width: world?.width || BASE.W, height: world?.height || BASE.H };
+}
+function activeObjective() {
+  return activeWorld()?.objective || stage.objective;
+}
+function updateMouseWorld() {
+  const point = WorldCore.screenToWorld({ x: mouse.sx, y: mouse.sy }, camera, view);
+  mouse.x = point.x;
+  mouse.y = point.y;
+}
+function updateCameraTracking(dt, snap = false) {
+  const world = activeWorld();
+  if (!world || !player) {
+    camera = { x: 0, y: 0 };
+  } else if (snap) {
+    camera = WorldCore.cameraForFocus(player, world, { width: BASE.W, height: BASE.H });
+  } else {
+    camera = WorldCore.updateCamera(camera, player, dt, world.cameraFollowRate, world, {
+      width: BASE.W,
+      height: BASE.H,
+    });
+  }
+  updateMouseWorld();
+}
 function moveActor(o, dx, dy) {
+  const size = worldSize();
   const collision = CollisionCore.moveCircle(o, dx, dy, walls, {
     minX: 42,
-    maxX: BASE.W - 42,
+    maxX: size.width - 42,
     minY: 55,
-    maxY: BASE.H - 42,
+    maxY: size.height - 42,
   });
   if (collision.blockedX) o.vx = 0;
   if (collision.blockedY) o.vy = 0;
@@ -547,7 +580,7 @@ function randomEdge() {
 
 // ── 플레이어와 업그레이드 동작 ─────────────────────────────────────────────
 function makePlayer() {
-  const start = currentEncounter()?.playerStart;
+  const start = activeWorld()?.playerStart || currentEncounter()?.playerStart;
   return {
     x: start?.x ?? (stage.number === 2 ? 220 : 640),
     y: start?.y ?? 630,
@@ -853,6 +886,20 @@ function enemyStats(type) {
 }
 function queueEnemies() {
   warnings = [];
+  const world = activeWorld();
+  if (world) {
+    let index = 0;
+    for (const zone of world.zones)
+      zone.waves.forEach((type, waveIndex) => {
+        warnings.push({
+          ...zone.spawnPoints[waveIndex % zone.spawnPoints.length],
+          type,
+          timer: 0.7 + index++ * 0.13,
+          targetShuttle: false,
+        });
+      });
+    return;
+  }
   const encounter = currentEncounter();
   let source = encounter?.waves || stage.waves[0],
     count = encounter ? source.length : Math.ceil((3 + state.loop) * diff.enemyMix);
@@ -953,6 +1000,8 @@ function updateEnemies(dt) {
   }
 }
 function updateBullets(dt) {
+  const size = worldSize();
+  const objective = activeObjective();
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
     b.px = b.x;
@@ -960,7 +1009,7 @@ function updateBullets(dt) {
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     b.life -= dt;
-    let gone = b.life <= 0 || b.x < 0 || b.x > BASE.W || b.y < 0 || b.y > BASE.H;
+    let gone = b.life <= 0 || b.x < 0 || b.x > size.width || b.y < 0 || b.y > size.height;
     if (
       !gone &&
       walls.some((w) => !w.open && b.x > w.x && b.x < w.x + w.w && b.y > w.y && b.y < w.y + w.h)
@@ -991,7 +1040,7 @@ function updateBullets(dt) {
         for (const s of switches)
           if (!b.hitIds?.includes(s) && hit(b, s)) {
             b.hitIds?.push(s);
-            s.charge = Math.min(100, s.charge + 16);
+            s.charge = Math.min(100, s.charge + (s.gain || 16));
             s.lastHit = state.elapsed;
             const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "relay");
             b.pierce = impact.pierce;
@@ -1002,10 +1051,7 @@ function updateBullets(dt) {
         for (const r of relays)
           if (!b.hitIds?.includes(r) && hit(b, r)) {
             b.hitIds?.push(r);
-            r.charge = Math.min(
-              stage.objective.relayChargeMax,
-              r.charge + stage.objective.relayGain
-            );
+            r.charge = Math.min(objective.relayChargeMax, r.charge + objective.relayGain);
             r.lastHit = state.elapsed;
             const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "relay");
             b.pierce = impact.pierce;
@@ -1127,7 +1173,7 @@ function hurtShuttle(dmg) {
 
 // ── 릴레이, 장벽, Chrono Anchor ────────────────────────────────────────────
 function makeObjectives() {
-  const objective = stage.objective,
+  const objective = activeObjective(),
     hp = core?.hp ?? stage.difficulty.coreHp,
     c = {
       x: objective.core.x,
@@ -1155,6 +1201,14 @@ function makeObjectives() {
   };
 }
 function buildArena() {
+  const world = activeWorld();
+  if (world) {
+    rooms = world.zones.map((zone) => ({ ...zone }));
+    walls = world.walls.map((wall) => ({ ...wall, open: false }));
+    switches = world.switches.map((item) => ({ ...item, charge: 0, lastHit: -9 }));
+    shuttle = null;
+    return;
+  }
   const layout = RoomData[stage.id];
   const encounter = currentEncounter();
   rooms = encounter
@@ -1179,14 +1233,15 @@ function buildArena() {
     };
 }
 function updateObjectives(dt) {
+  const objective = activeObjective();
   const guardSupport = enemies.some((enemy) => enemy.alive && enemy.behavior === "guard-core")
     ? 1.45
     : 1;
   for (const s of switches) {
     if (state.elapsed - s.lastHit > 0.18)
-      s.charge = Math.max(0, s.charge - 13 * diff.relayDecay * dt);
-    const gate = walls.find((w) => w.gate);
-    if (gate) gate.open = s.charge >= 42;
+      s.charge = Math.max(0, s.charge - (s.decay || 13) * diff.relayDecay * dt);
+    const gate = s.gateId ? walls.find((w) => w.id === s.gateId) : walls.find((w) => w.gate);
+    if (gate) gate.open = s.charge >= (s.threshold || 42);
   }
   for (const r of relays) {
     if (r.moving) {
@@ -1195,11 +1250,8 @@ function updateObjectives(dt) {
     }
     const was = r.active;
     if (state.elapsed - r.lastHit > 0.18)
-      r.charge = Math.max(
-        0,
-        r.charge - stage.objective.relayDecay * diff.relayDecay * guardSupport * dt
-      );
-    r.active = r.charge >= stage.objective.relayChargeMax;
+      r.charge = Math.max(0, r.charge - objective.relayDecay * diff.relayDecay * guardSupport * dt);
+    r.active = r.charge >= objective.relayChargeMax;
     if (r.active && !was) {
       state.score += 250;
       sfx.relay();
@@ -1208,10 +1260,10 @@ function updateObjectives(dt) {
   }
   if (
     relays.length > 0 &&
-    relays.filter((r) => r.active).length >= stage.objective.requiredRelays &&
+    relays.filter((r) => r.active).length >= objective.requiredRelays &&
     state.shieldTimer <= 0
   ) {
-    state.shieldTimer = stage.objective.shieldOpenSeconds * (diff.shieldTime / BASE.SHIELD_OPEN);
+    state.shieldTimer = objective.shieldOpenSeconds * (diff.shieldTime / BASE.SHIELD_OPEN);
     state.score += 500 + echoes.length * 100;
     sfx.shield();
     shake = 9;
@@ -1343,6 +1395,7 @@ function resetLoopWorld() {
   core = o.c;
   relays = o.rs;
   buildArena();
+  updateCameraTracking(0, true);
   state.elapsed = 0;
   state.shieldTimer = 0;
   state.noHit = true;
@@ -1356,9 +1409,12 @@ function resetLoopWorld() {
   updateHUD();
 }
 function currentEncounter() {
-  return stage?.number === 1 ? RoomData.awakening.encounters[state.roomIndex] : null;
+  return !activeWorld() && stage?.number === 1
+    ? RoomData.awakening.encounters[state.roomIndex]
+    : null;
 }
 function anchorActive() {
+  if (activeWorld()) return true;
   const encounter = currentEncounter();
   return !encounter || encounter.objective === "anchor";
 }
@@ -1402,6 +1458,7 @@ function finishRoomTransition() {
   flash = 0.12;
 }
 function updateRoomProgression() {
+  if (activeWorld()) return;
   const encounter = currentEncounter();
   if (!encounter || encounter.objective === "anchor") return;
   if (!state.roomCleared && warnings.length === 0 && enemies.every((enemy) => !enemy.alive)) {
@@ -1705,6 +1762,7 @@ function selectEquipment(itemId) {
   finishEquipmentSelection();
 }
 function updateHUD() {
+  const objective = activeObjective();
   ui.stage.textContent = `S${stage.number} // ${stage.name}`;
   ui.loop.textContent = `${state.loop} / ${diff.maxLoops}`;
   ui.time.textContent = Math.max(0, diff.loopTime - state.elapsed).toFixed(1);
@@ -1734,29 +1792,37 @@ function updateHUD() {
   }
   const gate = walls.find((w) => w.gate);
   const encounter = currentEncounter();
+  const world = activeWorld();
+  const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
   ui.objective.textContent =
-    encounter && encounter.objective !== "anchor"
-      ? state.roomCleared
-        ? "ROOM CLEAR — REACH THE EXIT"
-        : `${encounter.name} — ELIMINATE HOSTILES`
-      : state.shieldTimer > 0
-        ? `ANCHOR EXPOSED // ${state.shieldTimer.toFixed(1)}s`
-        : stage.number === 2 && gate && !gate.open
-          ? "KEEP SWITCH CHARGED — OPEN THE GATE"
-          : relays.some((r) => r.active)
-            ? `${relays.filter((r) => r.active).length} / ${stage.objective.requiredRelays} RELAYS SYNCHRONIZED`
-            : stage.number === 3
-              ? "RECORD ESCORT FIRE — THEN ATTACK RELAYS"
-              : echoes.length
-                ? "COORDINATE ALL THREE RELAYS"
-                : "RECORD FIRE ON ONE RELAY";
+    world && zone?.objective !== "anchor"
+      ? gate && !gate.open && player.x > 1250 && player.x < 2100
+        ? `${zone.name} — ECHO SWITCH OPENS THE SHORTCUT`
+        : `${zone?.name || "NEXUS"} — PUSH DEEPER // ECHOES HOLD THE REAR`
+      : encounter && encounter.objective !== "anchor"
+        ? state.roomCleared
+          ? "ROOM CLEAR — REACH THE EXIT"
+          : `${encounter.name} — ELIMINATE HOSTILES`
+        : state.shieldTimer > 0
+          ? `ANCHOR EXPOSED // ${state.shieldTimer.toFixed(1)}s`
+          : stage.number === 2 && gate && !gate.open
+            ? "KEEP SWITCH CHARGED — OPEN THE GATE"
+            : relays.some((r) => r.active)
+              ? `${relays.filter((r) => r.active).length} / ${objective.requiredRelays} RELAYS SYNCHRONIZED`
+              : stage.number === 3
+                ? "RECORD ESCORT FIRE — THEN ATTACK RELAYS"
+                : echoes.length
+                  ? "COORDINATE ALL THREE RELAYS"
+                  : "RECORD FIRE ON ONE RELAY";
   ui.tip.textContent =
     diff.id === "story"
       ? stage.number === 2
         ? "왼쪽 스위치를 Echo가 사격하도록 기록하면 중앙 통로가 열립니다."
         : stage.number === 3
           ? "탈출선 주변의 적을 쏘는 기록을 먼저 남기세요."
-          : "한 릴레이를 계속 사격한 뒤 R로 기록을 완성하세요."
+          : world
+            ? "첫 시간선의 전투 경로가 다음 루프에서 그대로 재생됩니다. 더 깊이 전진하세요."
+            : "한 릴레이를 계속 사격한 뒤 R로 기록을 완성하세요."
       : state.loop === 1 && state.elapsed < 6
         ? "지금의 이동·조준·사격은 다음 시간선에서 반복됩니다."
         : "";
@@ -1784,6 +1850,7 @@ function render() {
   ctx.clearRect(0, 0, innerWidth, innerHeight);
   ctx.translate(view.ox + (Math.random() - 0.5) * shake, view.oy + (Math.random() - 0.5) * shake);
   ctx.scale(view.scale, view.scale);
+  ctx.translate(-camera.x, -camera.y);
   renderArena();
   if (player) {
     renderObjectives();
@@ -1798,6 +1865,7 @@ function render() {
     renderCursor();
   }
   ctx.restore();
+  renderWorldGuidance();
   if (state.mode === "roomTransition") {
     ctx.fillStyle = `rgba(3,8,18,${clamp(1 - state.roomTransition / 0.4, 0, 0.92)})`;
     ctx.fillRect(0, 0, innerWidth, innerHeight);
@@ -1826,8 +1894,9 @@ function render() {
   flash *= 0.84;
 }
 function renderArena() {
+  const size = worldSize();
   ctx.fillStyle = stage?.arena?.tint || "#060916";
-  ctx.fillRect(0, 0, BASE.W, BASE.H);
+  ctx.fillRect(0, 0, size.width, size.height);
   for (const [index, room] of rooms.entries()) {
     ctx.fillStyle = index % 2 ? "rgba(28,46,74,.2)" : "rgba(18,67,77,.16)";
     ctx.fillRect(room.x, room.y, room.w, room.h);
@@ -1838,20 +1907,20 @@ function renderArena() {
     ctx.fillText(room.name, room.x + 13, room.y + 20);
   }
   ctx.strokeStyle = "rgba(66,95,142,.12)";
-  for (let x = 0; x < BASE.W; x += 48) {
+  for (let x = 0; x < size.width; x += 48) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, BASE.H);
+    ctx.lineTo(x, size.height);
     ctx.stroke();
   }
-  for (let y = 0; y < BASE.H; y += 48) {
+  for (let y = 0; y < size.height; y += 48) {
     ctx.beginPath();
     ctx.moveTo(0, y);
-    ctx.lineTo(BASE.W, y);
+    ctx.lineTo(size.width, y);
     ctx.stroke();
   }
   ctx.strokeStyle = "rgba(76,244,232,.22)";
-  ctx.strokeRect(25, 25, BASE.W - 50, BASE.H - 50);
+  ctx.strokeRect(25, 25, size.width - 50, size.height - 50);
   const encounter = currentEncounter();
   if (encounter) {
     ctx.fillStyle = "rgba(210,245,255,.52)";
@@ -1906,6 +1975,7 @@ function renderArena() {
 }
 function renderObjectives() {
   if (!anchorActive()) return;
+  const objective = activeObjective();
   for (const s of switches) {
     ctx.strokeStyle = "#45f5e9";
     ctx.lineWidth = 5;
@@ -1917,7 +1987,7 @@ function renderObjectives() {
     ctx.fill();
   }
   for (const r of relays) {
-    const p = r.charge / stage.objective.relayChargeMax;
+    const p = r.charge / objective.relayChargeMax;
     ctx.strokeStyle = r.active ? "#7fffee" : "#8d65e9";
     ctx.lineWidth = 5;
     ctx.beginPath();
@@ -2331,6 +2401,56 @@ function renderCursor() {
   ctx.lineTo(mouse.x + 16, mouse.y);
   ctx.stroke();
 }
+function renderWorldGuidance() {
+  const world = activeWorld();
+  if (!world || !player) return;
+  const map = { x: innerWidth - 218, y: innerHeight - 92, w: 190, h: 58 };
+  ctx.save();
+  ctx.fillStyle = "rgba(3,10,20,.78)";
+  ctx.strokeStyle = "rgba(107,235,225,.38)";
+  ctx.lineWidth = 1;
+  ctx.fillRect(map.x, map.y, map.w, map.h);
+  ctx.strokeRect(map.x, map.y, map.w, map.h);
+  for (const zone of world.zones) {
+    ctx.fillStyle = "rgba(80,133,161,.18)";
+    ctx.fillRect(
+      map.x + (zone.x / world.width) * map.w,
+      map.y + (zone.y / world.height) * map.h,
+      (zone.w / world.width) * map.w,
+      (zone.h / world.height) * map.h
+    );
+  }
+  const mark = (entity, color, radius) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(
+      map.x + (entity.x / world.width) * map.w,
+      map.y + (entity.y / world.height) * map.h,
+      radius,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  };
+  mark(core, "#ff4968", 3.2);
+  for (const echo of echoes) if (!echo.finished) mark(echo, "#45f5e9", 2.2);
+  mark(player, "#ffb45d", 3);
+
+  for (const echo of echoes) {
+    if (echo.finished) continue;
+    const screen = WorldCore.worldToScreen(echo, camera, view);
+    if (screen.x >= 0 && screen.x <= innerWidth && screen.y >= 0 && screen.y <= innerHeight)
+      continue;
+    const x = clamp(screen.x, 18, innerWidth - 18);
+    const y = clamp(screen.y, 18, innerHeight - 18);
+    ctx.strokeStyle = "rgba(69,245,233,.72)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 6, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
 // ── 업데이트 루프와 초기화 ─────────────────────────────────────────────────
 function update(dt) {
@@ -2354,6 +2474,7 @@ function update(dt) {
   state.elapsed += dt;
   state.overdriveTimer = TemporalCore.tickOverdrive(state, dt).overdriveTimer;
   state.overloadText = Math.max(0, state.overloadText - dt);
+  updateCameraTracking(dt);
   updatePlayer(dt);
   updateEchoes(dt);
   for (let i = warnings.length - 1; i >= 0; i--) {
