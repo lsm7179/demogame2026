@@ -255,6 +255,7 @@ const screens = [
   "transition",
   "override",
   "result",
+  "ending",
   "upgrade",
   "equipment",
 ].reduce((o, n) => ((o[n] = $(n + "-screen")), o), {});
@@ -456,6 +457,7 @@ function defaultSave() {
     equipmentOwned: [],
     muted: false,
     audioSettings: AudioCore.normalizeSettings(),
+    campaignComplete: false,
     hasCampaign: false,
   };
 }
@@ -1966,7 +1968,7 @@ function endStage(win) {
   $("result-rescue").textContent = shuttle ? `${shuttle.survivors} / 12` : "—";
   $("result-combo").textContent = state.bestCombo;
   $("result-overloads").textContent = state.overloads;
-  $("result-next").textContent = win ? "RECOVER EQUIPMENT" : "RETRY";
+  $("result-next").textContent = win ? (stage.number === 5 ? "엔딩 보기" : "장비 회수") : "재시도";
   if (win) {
     const old = save.stages[stage.id] || {};
     save.stages[stage.id] = {
@@ -1975,6 +1977,7 @@ function endStage(win) {
     };
     save.unlockedStage = Math.max(save.unlockedStage, Math.min(5, stage.number + 1));
     save.hasCampaign = true;
+    if (CampaignCore.isFinalVictory(stage.number, win)) save.campaignComplete = true;
     state.firstClear = !old.rank;
     persist();
     sfx.win();
@@ -2015,6 +2018,13 @@ function showStageSelect() {
       visual = s.visual || STAGES[0].visual;
     return `<button class="card stage-card ${locked ? "locked" : ""}" style="--stage-color:${visual.color}" data-stage="${s.id}" ${locked ? "disabled" : ""}><span class="stage-motif">${UiCore.iconSvg(visual.motif, `${s.name} 구역`)}</span><span class="num">구역 ${String(s.number).padStart(2, "0")}</span>${r ? `<b class="rank">${r.rank}</b>` : ""}<h3>${s.name}</h3><p>${s.subtitle}</p><span class="stage-route">${locked ? "접근 권한 필요" : "진입 가능"}</span><span class="tag">${locked ? "잠김" : "시간 앵커"}</span></button>`;
   }).join("");
+}
+function showEnding() {
+  showScreen("ending");
+  const summary = CampaignCore.summarize(save.stages);
+  $("ending-cleared").textContent = `${summary.cleared} / 5`;
+  $("ending-score").textContent = summary.totalScore.toLocaleString("ko-KR");
+  $("ending-s-ranks").textContent = summary.sRanks;
 }
 function showBriefing(s) {
   stage = s;
@@ -3131,15 +3141,20 @@ function bindUI() {
   $("keep-record").onclick = () => completeLoop(true);
   $("discard-record").onclick = () => completeLoop(false);
   $("result-map").onclick = () => {
-    if (state.mode === "result" && core.hp <= 0)
+    if (state.mode === "result" && core.hp <= 0 && stage.number === 5) showEnding();
+    else if (state.mode === "result" && core.hp <= 0)
       showEquipmentSelection(state.firstClear ? "upgrade" : "stage");
     else showStageSelect();
   };
   $("result-next").onclick = () => {
-    if (state.finalRank && state.mode === "result" && core.hp <= 0)
+    if (state.finalRank && state.mode === "result" && core.hp <= 0 && stage.number === 5)
+      showEnding();
+    else if (state.finalRank && state.mode === "result" && core.hp <= 0)
       showEquipmentSelection(state.firstClear ? "upgrade" : "stage");
     else startStage();
   };
+  $("ending-map").onclick = showStageSelect;
+  $("ending-new").onclick = () => showScreen("confirm");
   ui.muteTitle.onclick = toggleMute;
   ui.muteGame.onclick = toggleMute;
   $("difficulty-cards").onclick = (e) => {
@@ -3205,6 +3220,13 @@ function openLocalUiPreview() {
     stage = STAGES[0];
     startStage();
     togglePause(true);
+  }
+  if (preview === "ending") {
+    save.stages = {
+      ...save.stages,
+      "prime-anchor": save.stages["prime-anchor"] || { rank: "A", score: 4200 },
+    };
+    showEnding();
   }
   const stagePreview = Number(params.get("stage-preview"));
   if ([2, 3, 4, 5].includes(stagePreview)) {

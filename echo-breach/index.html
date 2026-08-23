@@ -177,6 +177,25 @@
           </div>
         </div>
       </section>
+      <section id="ending-screen" class="overlay hidden">
+        <div class="panel result ending-panel">
+          <p class="eyebrow">NEXUS 마지막 통신</p>
+          <h2>시간이 다시 흐릅니다</h2>
+          <div class="comms ending-copy">
+            <div>› PRIME Anchor 정지. 시설의 반복 붕괴 신호가 소멸했습니다.</div>
+            <div>› 생존 구역의 시간이 복구됐습니다. ECHO-07, 임무 완료.</div>
+          </div>
+          <div class="result-grid">
+            <div><span>복구 구역</span><strong id="ending-cleared">5 / 5</strong></div>
+            <div><span>캠페인 점수</span><strong id="ending-score">0</strong></div>
+            <div><span>S 랭크</span><strong id="ending-s-ranks">0</strong></div>
+          </div>
+          <div class="menu-row">
+            <button id="ending-map">구역 기록 보기</button>
+            <button id="ending-new" class="secondary">새 캠페인</button>
+          </div>
+        </div>
+      </section>
       <section id="upgrade-screen" class="overlay hidden">
         <div class="panel wide">
           <p class="eyebrow">시간 결정 분석</p>
@@ -217,6 +236,7 @@
     <script src="synergy-core.js"></script>
     <script src="corrupted-echo-core.js"></script>
     <script src="audio-core.js"></script>
+    <script src="campaign-core.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

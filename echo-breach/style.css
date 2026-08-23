@@ -646,6 +646,14 @@ button:focus-visible {
   width: 100%;
   accent-color: var(--cyan);
 }
+.ending-panel {
+  border-top-color: #8c7b54;
+}
+.ending-copy {
+  margin: 24px 0;
+  color: var(--bone);
+  line-height: 1.7;
+}
 .transition-copy {
   text-align: center;
   animation: glitch 0.15s steps(2) infinite;
