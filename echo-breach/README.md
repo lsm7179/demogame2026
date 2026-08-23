@@ -84,7 +84,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 ## 파일 구조
 
 - `index.html`: 캠페인 메뉴, 브리핑, 전투 HUD, 결과와 업그레이드 화면
-- `style.css`: 반응형 SF 인터페이스
+- `style.css`: 먹색 금속 재질과 정보 우선순위를 사용하는 반응형 전투 인터페이스
 - `game.js`: 데이터, 저장, 전투, Echo 기록/재생, 스테이지 규칙
 - `game-balance.js`: 자동 사격과 무기 핵심 밸런스 상수
 - `monster-data.js`: 시간 오염 몬스터 역할과 기존 전투 수치
@@ -105,6 +105,8 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `DESIGN.md`: 시스템과 밸런스 설계
 - `QA_BASELINE.md`: 기술 부채 정리 전 회귀 기준값
 - `tests/`: Node 내장 테스트 러너 기반 자동 회귀 테스트
+
+로컬 UI 검수는 정적 서버에서 `?ui-preview=equipment` 또는 `?ui-preview=upgrade`를 붙여 보상 화면을 직접 열 수 있습니다. 이 진입점은 `localhost`와 `127.0.0.1`에서만 동작합니다.
 
 ## 알려진 제한사항과 다음 후보
 

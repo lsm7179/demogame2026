@@ -1,10 +1,25 @@
 :root {
   color-scheme: dark;
-  --cyan: #45f5e9;
-  --orange: #ffb45d;
-  --red: #ff3f63;
-  --violet: #a673ff;
-  --ink: #050711;
+  --ink: #07090c;
+  --coal: #0b0e12;
+  --navy: #10161d;
+  --iron: #292e33;
+  --iron-light: #626970;
+  --bone: #d4d0c5;
+  --muted: #8c918f;
+  --cyan: #5aaea3;
+  --orange: #a98456;
+  --red: #963f45;
+  --violet: #786b82;
+  --common: #777d7c;
+  --rare: #527f88;
+  --legendary: #8d7248;
+  --edge: 1px solid #3a4045;
+  --panel-shadow: 0 18px 50px rgba(0, 0, 0, 0.42);
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 16px;
+  --space-4: 24px;
 }
 * {
   box-sizing: border-box;
@@ -766,5 +781,346 @@ button:focus-visible {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── 출시 UI 재질: 낡은 전투 장비와 시간 오염 ─────────────────────────── */
+.ui-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.overlay {
+  background: rgba(3, 5, 8, 0.9);
+  backdrop-filter: none;
+}
+.panel {
+  position: relative;
+  border: var(--edge);
+  border-top-color: #686d70;
+  background: #10141a;
+  box-shadow: var(--panel-shadow);
+  clip-path: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+}
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  border-top: 1px solid rgba(206, 199, 182, 0.08);
+  background: repeating-linear-gradient(
+    104deg,
+    transparent 0 83px,
+    rgba(255, 255, 255, 0.018) 84px 85px
+  );
+}
+.eyebrow {
+  color: #9b927f;
+  letter-spacing: 0.16em;
+}
+.tagline,
+.subtitle {
+  color: #aaa9a2;
+}
+button {
+  border: 1px solid #535a5d;
+  padding: 14px 24px;
+  background: #343b3e;
+  color: #e0ddd3;
+  clip-path: polygon(0 5px, 5px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+  transition:
+    border-color 0.12s,
+    background-color 0.12s;
+}
+button:hover:not(:disabled) {
+  filter: none;
+  transform: none;
+  border-color: #8b938f;
+  background: #424a4c;
+}
+button:active:not(:disabled) {
+  background: #252b2e;
+  border-color: var(--cyan);
+}
+button.secondary {
+  background: #1b2026;
+  color: #b7b5ae;
+  border-color: #3a4146;
+}
+button.text-button {
+  color: #8e918e;
+}
+.card-grid {
+  gap: 14px;
+}
+.card {
+  border: 1px solid #41474b;
+  border-top-color: #686d70;
+  background: #171b20;
+  color: var(--bone);
+  clip-path: polygon(0 7px, 7px 0, 100% 0, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0 100%);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+}
+.card:hover:not(.locked) {
+  border-color: #8b918d;
+  background: #1c2227;
+}
+.card p {
+  color: #a3a49e;
+}
+.card .num {
+  color: #9b927f;
+  letter-spacing: 0.12em;
+}
+.card .tag {
+  background: #242a2e;
+  color: #aaa9a2;
+  border-left: 2px solid #646b6d;
+}
+.rarity-common {
+  border: 1px solid var(--common);
+  border-top-width: 3px;
+}
+.rarity-rare {
+  border: 1px solid #426a72;
+  border-top: 3px solid var(--rare);
+}
+.rarity-epic,
+.rarity-legendary {
+  border: 1px solid #675a45;
+  border-top: 3px double var(--legendary);
+}
+.choice-card:focus-visible,
+.equipment-card:focus-visible {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow:
+    0 0 0 2px rgba(90, 174, 163, 0.18),
+    0 12px 26px rgba(0, 0, 0, 0.38);
+}
+.equipment-card {
+  padding: 66px 16px 12px;
+}
+.upgrade-card {
+  padding: 22px 20px 18px 76px;
+}
+.upgrade-card .choice-icon {
+  position: absolute;
+  left: 19px;
+  top: 20px;
+  width: 38px;
+  height: 38px;
+  padding: 8px;
+  color: #a7aaa5;
+  border: 1px solid #555c60;
+  background: #0e1216;
+}
+.upgrade-card.slot-weapon .choice-icon {
+  width: 46px;
+  border-radius: 0 10px 0 0;
+}
+.upgrade-card.slot-relic .choice-icon {
+  border-radius: 50%;
+}
+.equipment-card::before {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #555c60;
+  background: #0e1216;
+  transform: rotate(45deg);
+}
+.equipment-card.slot-weapon::before {
+  width: 54px;
+  height: 36px;
+  transform: none;
+  border-radius: 0 12px 0 0;
+}
+.equipment-card.slot-relic::before {
+  border-radius: 50%;
+  transform: none;
+}
+.equipment-card .equip-icon {
+  position: absolute;
+  z-index: 1;
+  float: none;
+  left: 28px;
+  top: 28px;
+  width: 24px;
+  height: 24px;
+  color: #a7aaa5;
+}
+.equipment-card.slot-weapon .equip-icon {
+  left: 33px;
+  top: 25px;
+  width: 28px;
+  height: 28px;
+}
+.equipment-card .pros {
+  color: #86aaa1;
+}
+.equipment-card .cons,
+.equipment-card .blocked-reason {
+  color: #b56c70;
+}
+.equipment-card .current,
+.equipment-card .pros,
+.equipment-card .cons {
+  margin-block: 3px;
+  font-size: 11px;
+}
+.statline {
+  color: #b4ab96 !important;
+}
+.stage-card {
+  min-height: 255px;
+  border-color: #3d4347;
+  border-top: 3px solid var(--stage-color);
+  background: #15191e;
+}
+.stage-card::before {
+  background: repeating-linear-gradient(
+    105deg,
+    transparent 0 61px,
+    rgba(255, 255, 255, 0.018) 62px 63px
+  );
+}
+.stage-card::after {
+  display: none;
+}
+.stage-card .stage-motif {
+  width: 48px;
+  height: 48px;
+  margin: 8px 0 28px;
+  color: color-mix(in srgb, var(--stage-color) 65%, #a8aaa5);
+  text-shadow: none;
+}
+.stage-card.locked {
+  opacity: 0.46;
+}
+.stage-card.locked .stage-motif {
+  filter: none;
+}
+.stage-card .stage-route {
+  color: #777d7c;
+}
+#stage-cards {
+  grid-template-columns: 1.45fr repeat(4, 1fr);
+}
+.hud-top {
+  gap: 26px;
+  padding: 6px 18px 9px;
+  border: 0;
+  border-bottom: 1px solid rgba(133, 136, 130, 0.25);
+  background: rgba(7, 9, 12, 0.72);
+  clip-path: none;
+}
+.hud-top .timer strong {
+  color: #e5e1d7;
+  font-size: 36px;
+  text-shadow: none;
+}
+.hud-top .timer .label {
+  color: #9b927f;
+}
+.hud-vitals,
+.hud-anchor,
+.hud-overdrive {
+  padding: 8px 10px;
+  border: 0;
+  border-left: 2px solid #555c60;
+  background: rgba(7, 9, 12, 0.76);
+  backdrop-filter: none;
+}
+.hud-vitals {
+  width: min(300px, 28vw);
+  border-left-color: #8c3e43;
+}
+.hud-anchor {
+  border-left-color: #74383d;
+}
+.hud-overdrive {
+  border-left-color: #4e847d;
+}
+.bar {
+  height: 8px;
+  background: #24282a;
+  transform: none;
+  border-bottom: 1px solid #4d5354;
+}
+.bar i {
+  background: #9a4146;
+  box-shadow: none;
+}
+.bar.dash i,
+.bar.shield i {
+  background: #5d8b86;
+  box-shadow: none;
+}
+.bar.core i {
+  background: #873a40;
+}
+.bar.overdrive i {
+  background: #568f87;
+  box-shadow: none;
+}
+.hud-notices #objective {
+  border: 0;
+  border-left: 2px solid #82745d;
+  background: rgba(7, 9, 12, 0.72);
+  color: #d0ccc1;
+}
+#tip {
+  color: #999b96;
+}
+#loadout-hud {
+  gap: 5px;
+}
+#loadout-hud .loadout-slot {
+  grid-template-columns: 30px minmax(74px, 1fr);
+  border: 1px solid #3f4649;
+  border-top: 2px solid #5c6263;
+  background: rgba(8, 10, 13, 0.82);
+}
+#loadout-hud .loadout-slot.slot-weapon {
+  border-radius: 0 10px 0 0;
+}
+#loadout-hud .loadout-slot.slot-relic {
+  border-top-color: #6f6350;
+}
+#loadout-hud .slot-icon {
+  width: 22px;
+  height: 22px;
+  color: #858d8b;
+}
+#loadout-hud b {
+  color: #c4c2ba;
+}
+#loadout-hud .loadout-slot::after {
+  border: 1px solid #484f52;
+  background: #101419;
+  color: #cbc8be;
+}
+.corner-button {
+  border: 1px solid #3f4649;
+  background: #171b20;
+  color: #8c918f;
+}
+@media (pointer: coarse), (max-width: 900px) {
+  .hud-vitals {
+    width: 30vw;
+    min-width: 150px;
+  }
+  #loadout-hud .loadout-slot {
+    grid-template-columns: 22px 1fr;
+    min-width: 70px;
+    max-width: 98px;
+  }
+  .stage-card {
+    min-height: 230px;
   }
 }

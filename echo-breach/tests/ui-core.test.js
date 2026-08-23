@@ -38,7 +38,17 @@ test("offscreen markers clamp to safe HUD edges and retain direction", () => {
 test("objective alerts remain compact and situation driven", () => {
   assert.equal(
     ui.objectiveAlert({ anchor: true, shieldOpen: false, activeRelays: 1, requiredRelays: 2 }),
-    "SYNC RELAYS 1/2"
+    "릴레이 동기화 1/2"
   );
-  assert.equal(ui.objectiveAlert({ anchor: false, gateClosed: true }), "ECHO SWITCH // SHORTCUT");
+  assert.equal(ui.objectiveAlert({ anchor: false, gateClosed: true }), "Echo 스위치로 지름길 개방");
+});
+
+test("release UI icons use a consistent inline SVG vocabulary", () => {
+  for (const kind of ["weapon", "armor", "relic", "awakening", "split", "rescue"]) {
+    const icon = ui.iconSvg(kind, "표식");
+    assert.match(icon, /^<svg/);
+    assert.match(icon, /viewBox="0 0 24 24"/);
+    assert.match(icon, /stroke-width="1.7"/);
+    assert.doesNotMatch(icon, /<text|emoji/i);
+  }
 });

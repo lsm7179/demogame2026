@@ -18,23 +18,23 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050711'/%3E%3Cpath d='M13 16h38v9H24v7h22v8H24v7h27v9H13z' fill='%2345f5e9'/%3E%3C/svg%3E"
     />
-    <link rel="stylesheet" href="style.css?v=0.7.1-copy" />
+    <link rel="stylesheet" href="style.css?v=0.8.0-worn-ui" />
   </head>
   <body>
     <main id="game-shell">
       <canvas id="game" aria-label="ECHO BREACH 전투 화면"></canvas>
       <div id="hud" class="hidden">
         <section class="hud-top">
-          <div><span class="label">LOOP</span><strong id="loop-value">1 / 5</strong></div>
+          <div><span class="label">루프</span><strong id="loop-value">1 / 5</strong></div>
           <div class="timer">
-            <span class="label">REWIND IN</span><strong id="time-value">20.0</strong>
+            <span class="label">되감기</span><strong id="time-value">20.0</strong>
           </div>
-          <div><span class="label">ECHOES</span><strong id="echo-value">0</strong></div>
+          <div><span class="label">Echo</span><strong id="echo-value">0</strong></div>
         </section>
         <section class="hud-vitals" aria-label="생존 상태">
           <div id="stage-hud">S1 // AWAKENING</div>
           <div>
-            <span>ECHO-07 INTEGRITY</span>
+            <span>생명력</span>
             <div class="bar"><i id="hp-bar"></i></div>
           </div>
           <div id="shield-hud" class="hidden">
@@ -42,7 +42,7 @@
             <div class="bar shield"><i id="shield-bar"></i></div>
           </div>
           <div>
-            <span>DASH</span>
+            <span>대시</span>
             <div class="bar dash"><i id="dash-bar"></i></div>
           </div>
           <div id="shuttle-hud" class="hidden">
@@ -52,13 +52,13 @@
         </section>
         <section class="hud-anchor">
           <div>
-            <span>CHRONO ANCHOR</span>
+            <span>시간 앵커</span>
             <div class="bar core"><i id="core-bar"></i></div>
           </div>
-          <div class="score"><span>SCORE</span><strong id="score-value">0</strong></div>
+          <div class="score"><span>점수</span><strong id="score-value">0</strong></div>
         </section>
         <section class="hud-overdrive">
-          <span id="overdrive-label">TEMPORAL OVERDRIVE</span>
+          <span id="overdrive-label">오버드라이브</span>
           <div class="bar overdrive"><i id="overdrive-bar"></i></div>
         </section>
         <div class="hud-notices">
@@ -76,8 +76,8 @@
             전송할 수 있다.
           </p>
           <div class="menu-row">
-            <button id="continue-button">CONTINUE</button
-            ><button id="new-button" class="secondary">NEW CAMPAIGN</button>
+            <button id="continue-button">계속하기</button
+            ><button id="new-button" class="secondary">새 캠페인</button>
           </div>
           <div class="controls">
             <span><b>WASD</b> 이동</span><span><b>MOUSE</b> 조준·자동 사격</span
@@ -100,19 +100,19 @@
       </section>
       <section id="difficulty-screen" class="overlay hidden">
         <div class="panel wide">
-          <p class="eyebrow">SELECT TEMPORAL LOAD</p>
-          <h2>DIFFICULTY</h2>
+          <p class="eyebrow">시간 부하 선택</p>
+          <h2>난이도 선택</h2>
           <div id="difficulty-cards" class="card-grid three"></div>
           <button data-back class="text-button">BACK</button>
         </div>
       </section>
       <section id="stage-screen" class="overlay hidden">
         <div class="panel wide">
-          <p class="eyebrow">NEXUS SECTOR MAP</p>
-          <h2>SELECT ANCHOR</h2>
+          <p class="eyebrow">NEXUS 구역 지도</p>
+          <h2>구역 선택</h2>
           <div id="campaign-status"></div>
           <div id="stage-cards" class="card-grid stages"></div>
-          <button id="change-difficulty" class="text-button">CHANGE DIFFICULTY</button>
+          <button id="change-difficulty" class="text-button">난이도 변경</button>
         </div>
       </section>
       <section id="briefing-screen" class="overlay hidden">
@@ -123,17 +123,17 @@
           <div id="briefing-copy" class="comms"></div>
           <div id="briefing-objective" class="objective-card"></div>
           <div class="menu-row">
-            <button id="deploy-button">DEPLOY ECHO-07</button
+            <button id="deploy-button">ECHO-07 투입</button
             ><button id="briefing-back" class="secondary">SECTOR MAP</button>
           </div>
         </div>
       </section>
       <section id="pause-screen" class="overlay hidden">
         <div class="panel compact">
-          <p class="eyebrow">SYSTEM SUSPENDED</p>
-          <h2>PAUSED</h2>
+          <p class="eyebrow">시스템 정지</p>
+          <h2>일시정지</h2>
           <p id="pause-help">ESC 키로 전투 복귀</p>
-          <button id="abort-button" class="secondary">ABORT TO MAP</button>
+          <button id="abort-button" class="secondary">구역 선택으로</button>
         </div>
       </section>
       <section id="transition-screen" class="overlay hidden nonblocking">
@@ -175,19 +175,19 @@
       </section>
       <section id="upgrade-screen" class="overlay hidden">
         <div class="panel wide">
-          <p class="eyebrow">CHRONO CRYSTAL ANALYSIS</p>
-          <h2>SELECT UPGRADE</h2>
+          <p class="eyebrow">시간 결정 분석</p>
+          <h2>강화 선택</h2>
           <p id="upgrade-help">강화 1개를 선택합니다.</p>
           <div id="upgrade-cards" class="card-grid three"></div>
         </div>
       </section>
       <section id="equipment-screen" class="overlay hidden">
         <div class="panel wide">
-          <p id="equipment-kicker" class="eyebrow">ROOM CACHE // TEMPORAL EQUIPMENT</p>
-          <h2>SELECT EQUIPMENT</h2>
+          <p id="equipment-kicker" class="eyebrow">전투 구역 보상 · 장비</p>
+          <h2>장비 선택</h2>
           <p id="equipment-help">장비 1개를 선택하거나 건너뜁니다.</p>
           <div id="equipment-cards" class="card-grid three"></div>
-          <button id="equipment-skip" class="secondary">SKIP CACHE</button>
+          <button id="equipment-skip" class="secondary">건너뛰기</button>
         </div>
       </section>
       <button id="mute-game" class="corner-button hidden" aria-label="음소거">M</button>

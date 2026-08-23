@@ -83,7 +83,7 @@ const STAGES = [
     arena: { type: "radial", tint: "#07101d" },
     visual: {
       color: "#45f5e9",
-      motif: "◉",
+      motif: "awakening",
       preview: "linear-gradient(145deg,#0c3340,#07101d 62%)",
     },
     difficulty: { coreHp: 650 },
@@ -105,7 +105,7 @@ const STAGES = [
     arena: { type: "split", tint: "#07131a" },
     visual: {
       color: "#73a7ff",
-      motif: "⇆",
+      motif: "split",
       preview: "linear-gradient(145deg,#13284b,#07131a 62%)",
     },
     difficulty: { coreHp: 720 },
@@ -127,7 +127,7 @@ const STAGES = [
     arena: { type: "rescue", tint: "#100b19" },
     visual: {
       color: "#cf84ff",
-      motif: "✦",
+      motif: "rescue",
       preview: "linear-gradient(145deg,#321844,#100b19 62%)",
     },
     difficulty: { coreHp: 760 },
@@ -146,7 +146,7 @@ const STAGES = [
     arena: { type: "locked" },
     visual: {
       color: "#ff607c",
-      motif: "◈",
+      motif: "corrupted",
       preview: "linear-gradient(145deg,#361322,#0c0710 62%)",
     },
     difficulty: {},
@@ -166,7 +166,7 @@ const STAGES = [
     arena: { type: "locked" },
     visual: {
       color: "#ffd36f",
-      motif: "⌬",
+      motif: "prime",
       preview: "linear-gradient(145deg,#352b14,#0d0a05 62%)",
     },
     difficulty: {},
@@ -1641,7 +1641,7 @@ function showStageSelect() {
     const locked = s.locked || s.number > save.unlockedStage,
       r = save.stages[s.id],
       visual = s.visual || STAGES[0].visual;
-    return `<button class="card stage-card ${locked ? "locked" : ""}" style="--stage-color:${visual.color};--stage-preview:${visual.preview}" data-stage="${s.id}" ${locked ? "disabled" : ""}><span class="stage-motif" aria-hidden="true">${visual.motif}</span><span class="num">STAGE 0${s.number}</span>${r ? `<b class="rank">${r.rank}</b>` : ""}<h3>${s.name}</h3><p>${s.subtitle}</p><span class="stage-route">${s.number < 5 ? "NEXUS LINK " + String(s.number).padStart(2, "0") : "CENTRAL TERMINUS"}</span><span class="tag">${locked ? "ENCRYPTED // LOCKED" : s.objective.type.toUpperCase()}</span></button>`;
+    return `<button class="card stage-card ${locked ? "locked" : ""}" style="--stage-color:${visual.color}" data-stage="${s.id}" ${locked ? "disabled" : ""}><span class="stage-motif">${UiCore.iconSvg(visual.motif, `${s.name} 구역`)}</span><span class="num">구역 ${String(s.number).padStart(2, "0")}</span>${r ? `<b class="rank">${r.rank}</b>` : ""}<h3>${s.name}</h3><p>${s.subtitle}</p><span class="stage-route">${locked ? "접근 권한 필요" : "진입 가능"}</span><span class="tag">${locked ? "잠김" : "시간 앵커"}</span></button>`;
   }).join("");
 }
 function showBriefing(s) {
@@ -1687,7 +1687,10 @@ function showUpgrades() {
         description: uiCopy().emptyDescription,
         detail: "",
       };
-      return `<button class="card choice-card rarity-${u.rarity}" data-upgrade="${u.id}"><span class="num">${uiCopy().categories[u.category] || u.category} // ${uiCopy().rarities[u.rarity] || u.rarity}</span><h3>${copy.name}</h3><p class="choice-description">${copy.description}</p><p class="statline">${copy.detail}</p></button>`;
+      const iconKind =
+        u.category === "WEAPON" ? "weapon" : u.category === "HULL" ? "armor" : "relic";
+      const category = uiCopy().categories[u.category] || u.category;
+      return `<button class="card choice-card upgrade-card slot-${iconKind} rarity-${u.rarity}" data-upgrade="${u.id}"><span class="choice-icon">${UiCore.iconSvg(iconKind, category)}</span><span class="num">${category} · ${uiCopy().rarities[u.rarity] || u.rarity}</span><h3>${copy.name}</h3><p class="choice-description">${copy.description}</p><p class="statline">${copy.detail}</p></button>`;
     })
     .join("");
 }
@@ -1735,7 +1738,7 @@ function equipmentCard(item) {
     currentCopy = current ? localized("equipment", current.id) : null,
     slotName = uiCopy().slots[item.slot] || item.slot,
     rarityName = uiCopy().rarities[item.rarity] || item.rarity;
-  return `<button class="card choice-card equipment-card rarity-${item.rarity}" data-equipment="${item.id}" ${blocked ? "disabled" : ""}><span class="equip-icon" aria-hidden="true">${item.visual.icon}</span><span class="num">${slotName} // ${rarityName}</span><h3>${copy.name}</h3><p class="choice-description">${copy.description}</p><p class="statline">${copy.stats.join(" · ")}</p><p class="current">${uiCopy().current}: ${currentCopy?.name || uiCopy().none}</p><p class="pros">+ ${uiCopy().advantage}: ${copy.pros}</p><p class="cons">- ${uiCopy().drawback}: ${copy.cons}</p>${blocked ? `<p class="blocked-reason">${uiCopy().incompatible}</p>` : ""}</button>`;
+  return `<button class="card choice-card equipment-card slot-${item.slot} rarity-${item.rarity}" data-equipment="${item.id}" ${blocked ? "disabled" : ""}><span class="equip-icon">${UiCore.iconSvg(item.slot, slotName)}</span><span class="num">${slotName} · ${rarityName}</span><h3>${copy.name}</h3><p class="choice-description">${copy.description}</p><p class="statline">${copy.stats.join(" · ")}</p><p class="current">${uiCopy().current}: ${currentCopy?.name || uiCopy().none}</p><p class="pros">${uiCopy().advantage}: ${copy.pros}</p><p class="cons">${uiCopy().drawback}: ${copy.cons}</p>${blocked ? `<p class="blocked-reason">${uiCopy().incompatible}</p>` : ""}</button>`;
 }
 function showEquipmentSelection(nextFlow) {
   const candidates = equipmentCandidates();
@@ -1750,7 +1753,7 @@ function showEquipmentSelection(nextFlow) {
   state.mode = "equipmentSelect";
   screens.equipment.classList.remove("hidden");
   $("equipment-kicker").textContent =
-    nextFlow === "room" ? "전투 구역 보상 // 장비" : "ANCHOR 보상 // 장비";
+    nextFlow === "room" ? "전투 구역 보상 · 장비" : "앵커 보상 · 장비";
   $("equipment-cards").innerHTML = candidates.map(equipmentCard).join("");
   requestAnimationFrame(() => $("equipment-cards").querySelector("button:not(:disabled)")?.focus());
   return true;
@@ -1807,22 +1810,20 @@ function updateHUD() {
   ui.dash.style.width = `${100 * (player.dashStock / stats.dashCharges)}%`;
   ui.overdrive.style.width = `${100 * clamp(state.overdriveGauge / GameBalance.overdrive.maxGauge, 0, 1)}%`;
   ui.overdriveLabel.textContent =
-    state.overdriveTimer > 0
-      ? `OVERDRIVE ${state.overdriveTimer.toFixed(1)}s`
-      : "TEMPORAL OVERDRIVE";
+    state.overdriveTimer > 0 ? `오버드라이브 ${state.overdriveTimer.toFixed(1)}초` : "오버드라이브";
   ui.core.style.width = `${anchorActive() ? (100 * core.hp) / core.maxHp : 0}%`;
   ui.score.textContent = Math.round(state.score);
   const slotMeta = {
-    weapon: { icon: "⌁", label: uiCopy().slots.weapon },
-    armor: { icon: "⬡", label: uiCopy().slots.armor },
-    relic: { icon: "◈", label: uiCopy().slots.relic },
+    weapon: { label: uiCopy().slots.weapon },
+    armor: { label: uiCopy().slots.armor },
+    relic: { label: uiCopy().slots.relic },
   };
   ui.loadout.innerHTML = Object.entries(save.loadout)
     .map(([slot, id]) => {
       const item = equipmentItem(id),
         meta = slotMeta[slot],
         copy = item ? localized("equipment", item.id) : null;
-      return `<span class="loadout-slot" tabindex="0" data-tooltip="${copy?.description || `${meta.label}: ${uiCopy().none}`}"><i class="slot-icon" aria-hidden="true">${meta.icon}</i><span><small>${meta.label}</small><b>${copy?.name || uiCopy().none}</b></span></span>`;
+      return `<span class="loadout-slot slot-${slot}" tabindex="0" data-tooltip="${copy?.description || `${meta.label}: ${uiCopy().none}`}"><i class="slot-icon">${UiCore.iconSvg(slot, meta.label)}</i><span><small>${meta.label}</small><b>${copy?.name || uiCopy().none}</b></span></span>`;
     })
     .join("");
   ui.shuttleHud.classList.toggle("hidden", !shuttle);
@@ -2516,7 +2517,7 @@ function renderWorldGuidance() {
   ctx.strokeRect(map.x, map.y, map.w, map.h);
   ctx.fillStyle = "rgba(201,238,243,.62)";
   ctx.font = "700 9px monospace";
-  ctx.fillText("NEXUS TACTICAL MAP", map.x + 9, map.y + 13);
+  ctx.fillText("구역 지도", map.x + 9, map.y + 13);
   for (const zone of world.zones) {
     const topLeft = UiCore.projectToMinimap(zone, world, map);
     ctx.fillStyle = "rgba(80,133,161,.18)";
@@ -2724,4 +2725,13 @@ function init() {
   ui.muteTitle.textContent = `소리: ${muted ? "끔" : "켬"}`;
   render();
 }
+
+function openLocalUiPreview() {
+  if (!["127.0.0.1", "localhost"].includes(location.hostname)) return;
+  const preview = new URLSearchParams(location.search).get("ui-preview");
+  if (preview === "equipment") showEquipmentSelection("stage");
+  if (preview === "upgrade") showUpgrades();
+}
+
 init();
+openLocalUiPreview();

@@ -48,15 +48,34 @@
     requiredRelays,
     gateClosed,
   }) {
-    if (anchor && shieldOpen) return "ANCHOR EXPOSED";
-    if (anchor) return `SYNC RELAYS ${activeRelays}/${requiredRelays}`;
-    if (gateClosed) return "ECHO SWITCH // SHORTCUT";
-    return `${zoneName || "NEXUS"} // ADVANCE`;
+    if (anchor && shieldOpen) return "시간 앵커 노출";
+    if (anchor) return `릴레이 동기화 ${activeRelays}/${requiredRelays}`;
+    if (gateClosed) return "Echo 스위치로 지름길 개방";
+    return `${zoneName || "NEXUS"} · 전진`;
+  }
+
+  const iconPaths = Object.freeze({
+    weapon: '<path d="M3 13h7l3-3h7v4h-7l-3-2H3z"/><path d="M9 13l-2 6h4l3-6"/>',
+    armor:
+      '<path d="M12 2l8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path d="M8 8h8v6l-4 3-4-3z"/>',
+    relic: '<path d="M12 2l5 5-2 5 2 5-5 5-5-5 2-5-2-5z"/><path d="M12 7v10M9.5 12h5"/>',
+    awakening:
+      '<path d="M12 3a9 9 0 109 9"/><path d="M12 7a5 5 0 105 5"/><path d="M12 10v4M10 12h4"/>',
+    split: '<path d="M4 5h7v5H7l-3 3M20 19h-7v-5h4l3-3"/><path d="M11 7l2 10"/>',
+    rescue: '<path d="M12 3l3 6 6 3-6 3-3 6-3-6-6-3 6-3z"/><path d="M12 8v8M8 12h8"/>',
+    corrupted: '<path d="M12 2l9 10-9 10L3 12z"/><path d="M8 8l8 8M16 8l-8 8"/>',
+    prime: '<path d="M7 4h10l5 8-5 8H7l-5-8z"/><path d="M8 12h8M12 8v8"/>',
+  });
+
+  function iconSvg(kind, label = "") {
+    const path = iconPaths[kind] || iconPaths.relic;
+    return `<svg class="ui-icon" viewBox="0 0 24 24" role="img" aria-label="${label}" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="square" stroke-linejoin="miter">${path}</svg>`;
   }
 
   return Object.freeze({
     HUD_LAYOUT,
     getMinimapRect,
+    iconSvg,
     objectiveAlert,
     offscreenMarker,
     projectToMinimap,

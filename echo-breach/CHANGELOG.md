@@ -2,6 +2,20 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.8.0] - 2026-08-23
+
+### Changed
+
+- Rebuilt title, stage, reward, pause, and combat UI around worn metal surfaces and restrained state colors instead of repeated neon glass cards.
+- Added a consistent custom SVG icon vocabulary for stage, weapon, armor, relic, and upgrade presentation.
+- Reweighted the HUD around the rewind timer, heavy health bar, compact loadout, tactical minimap, and separate Overdrive meter.
+- Made the active stage visually dominant while locked stages remain compact route previews.
+- Localized remaining interaction labels and added localhost-only reward UI preview routes for visual QA.
+
+### Accessibility
+
+- Preserved keyboard focus outlines, two-line choice descriptions, reduced-motion behavior, and non-color slot silhouettes.
+
 ## [0.7.1] - 2026-08-23
 
 ### Changed
