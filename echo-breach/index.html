@@ -67,6 +67,15 @@
         </div>
         <div id="loadout-hud" aria-label="현재 장비"></div>
       </div>
+      <div id="touch-controls" class="touch-controls" aria-label="터치 조작">
+        <div class="touch-stick move-stick" data-stick="move" aria-label="이동 스틱">
+          <i></i><span>이동</span>
+        </div>
+        <button id="touch-dash" aria-label="대시">대시</button>
+        <div class="touch-stick aim-stick" data-stick="aim" aria-label="조준 스틱">
+          <i></i><span>조준</span>
+        </div>
+      </div>
       <section id="title-screen" class="overlay">
         <div class="panel hero">
           <p class="eyebrow">NEXUS TEMPORAL EMERGENCY</p>
@@ -237,6 +246,7 @@
     <script src="corrupted-echo-core.js"></script>
     <script src="audio-core.js"></script>
     <script src="campaign-core.js"></script>
+    <script src="input-core.js"></script>
     <script src="game.js"></script>
   </body>
 </html>

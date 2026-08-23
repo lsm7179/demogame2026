@@ -325,6 +325,12 @@ let raf = 0,
   camera = { x: 0, y: 0 };
 const keys = Object.create(null),
   mouse = { x: 640, y: 360, sx: 640, sy: 360, inside: false };
+const mobileInput = {
+    move: { x: 0, y: 0, active: false },
+    aim: { x: 0, y: 0, active: false },
+  },
+  gamepadLatch = { dash: false, pause: false, select: false, navigation: false };
+let gamepadInput = null;
 const PLAYTEST_STORAGE_KEY = "echoBreachPlaytestsV2";
 const playtestEnabled = ["127.0.0.1", "localhost"].includes(location.hostname);
 
@@ -532,6 +538,66 @@ function bindInputs() {
     last = performance.now();
     if (document.hidden && state.mode === "playing" && !state.paused) togglePause(true);
   });
+  document.querySelectorAll("[data-stick]").forEach(bindTouchStick);
+  $("touch-dash").addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    initAudio();
+    if (state.mode === "playing" && !state.paused) tryDash(player, true);
+  });
+}
+function bindTouchStick(element) {
+  const target = mobileInput[element.dataset.stick];
+  let pointerId = null;
+  const move = (event) => {
+    if (event.pointerId !== pointerId) return;
+    const rect = element.getBoundingClientRect();
+    const rawX = (event.clientX - (rect.left + rect.width / 2)) / (rect.width * 0.38);
+    const rawY = (event.clientY - (rect.top + rect.height / 2)) / (rect.height * 0.38);
+    const value = InputCore.stick(rawX, rawY, 0.08);
+    Object.assign(target, value);
+    element.style.setProperty("--stick-x", `${value.x * 36}px`);
+    element.style.setProperty("--stick-y", `${value.y * 36}px`);
+  };
+  const release = (event) => {
+    if (event.pointerId !== pointerId) return;
+    pointerId = null;
+    Object.assign(target, { x: 0, y: 0, active: false });
+    element.style.setProperty("--stick-x", "0px");
+    element.style.setProperty("--stick-y", "0px");
+  };
+  element.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    pointerId = event.pointerId;
+    element.setPointerCapture(pointerId);
+    initAudio();
+    move(event);
+  });
+  element.addEventListener("pointermove", move);
+  element.addEventListener("pointerup", release);
+  element.addEventListener("pointercancel", release);
+}
+function pollGamepad() {
+  const pad = Array.from(navigator.getGamepads?.() || []).find(Boolean);
+  gamepadInput = InputCore.gamepadState(pad);
+  if (!gamepadInput) return;
+  if (gamepadInput.dash && !gamepadLatch.dash && state.mode === "playing" && !state.paused)
+    tryDash(player, true);
+  if (gamepadInput.pause && !gamepadLatch.pause && state.mode === "playing") togglePause();
+  const select = Boolean(pad.buttons?.[0]?.pressed);
+  const navigation = gamepadInput.navX || gamepadInput.navY;
+  if (navigation && !gamepadLatch.navigation && state.mode !== "playing") {
+    const buttons = [...document.querySelectorAll("button:not([disabled])")].filter(
+      (button) => button.offsetParent !== null
+    );
+    const current = Math.max(0, buttons.indexOf(document.activeElement));
+    const direction = gamepadInput.navX < 0 || gamepadInput.navY < 0 ? -1 : 1;
+    buttons[(current + direction + buttons.length) % buttons.length]?.focus();
+  }
+  if (select && !gamepadLatch.select && state.mode !== "playing") document.activeElement?.click?.();
+  gamepadLatch.dash = gamepadInput.dash;
+  gamepadLatch.pause = gamepadInput.pause;
+  gamepadLatch.select = select;
+  gamepadLatch.navigation = Boolean(navigation);
 }
 function initAudio() {
   if (!audio) {
@@ -741,8 +807,17 @@ function makePlayer() {
 }
 function updatePlayer(dt) {
   let ix = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0),
-    iy = (keys.KeyS ? 1 : 0) - (keys.KeyW ? 1 : 0),
-    n = norm(ix, iy);
+    iy = (keys.KeyS ? 1 : 0) - (keys.KeyW ? 1 : 0);
+  const alternateMove = mobileInput.move.active
+    ? mobileInput.move
+    : gamepadInput?.move.active
+      ? gamepadInput.move
+      : null;
+  if (alternateMove) {
+    ix = alternateMove.x;
+    iy = alternateMove.y;
+  }
+  let n = norm(ix, iy);
   if (!ix && !iy) n = { x: 0, y: 0 };
   const blend = 1 - Math.exp(-BASE.ACCEL * dt);
   state.slowTimer = Math.max(0, state.slowTimer - dt);
@@ -760,7 +835,14 @@ function updatePlayer(dt) {
     moveY = player.vy * dt;
   }
   moveActor(player, moveX, moveY);
-  player.angle = Math.atan2(mouse.y - player.y, mouse.x - player.x);
+  const alternateAim = mobileInput.aim.active
+    ? mobileInput.aim
+    : gamepadInput?.aim.active
+      ? gamepadInput.aim
+      : null;
+  player.angle = alternateAim
+    ? Math.atan2(alternateAim.y, alternateAim.x)
+    : Math.atan2(mouse.y - player.y, mouse.x - player.x);
   player.fireCd -= dt;
   player.invuln -= dt;
   player.recoil = Math.max(0, player.recoil - dt * 9);
@@ -777,7 +859,7 @@ function updatePlayer(dt) {
   const autoFire = EchoCore.canAutoFire({
     mode: state.mode,
     paused: state.paused,
-    mouseInside: mouse.inside,
+    mouseInside: mouse.inside || Boolean(alternateAim),
     alive: player.hp > 0,
   });
   if (stats.weapon === "charge") {
@@ -3107,6 +3189,7 @@ function update(dt) {
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 0.05);
   last = now;
+  pollGamepad();
   if (!state.paused) {
     accumulator += dt;
     while (accumulator >= 1 / 120) {

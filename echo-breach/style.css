@@ -654,6 +654,51 @@ button:focus-visible {
   color: var(--bone);
   line-height: 1.7;
 }
+.touch-controls {
+  display: none;
+  position: fixed;
+  inset: auto 0 max(14px, env(safe-area-inset-bottom)) 0;
+  z-index: 6;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 max(18px, env(safe-area-inset-left));
+  pointer-events: none;
+}
+.touch-stick {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border: 1px solid rgba(180, 187, 184, 0.34);
+  border-radius: 50%;
+  background: rgba(10, 14, 17, 0.58);
+  pointer-events: auto;
+  touch-action: none;
+}
+.touch-stick i {
+  position: absolute;
+  left: 37px;
+  top: 37px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #73817f;
+  border-radius: 50%;
+  background: #252c2f;
+  transform: translate(var(--stick-x, 0), var(--stick-y, 0));
+}
+.touch-stick span {
+  position: absolute;
+  inset: auto 0 10px;
+  text-align: center;
+  color: #969e9b;
+  font-size: 9px;
+}
+#touch-dash {
+  margin: 0 0 8px auto;
+  min-width: 64px;
+  min-height: 48px;
+  padding: 10px;
+  pointer-events: auto;
+}
 .transition-copy {
   text-align: center;
   animation: glitch 0.15s steps(2) infinite;
@@ -724,6 +769,16 @@ button:focus-visible {
   }
 }
 @media (pointer: coarse), (max-width: 900px) {
+  #hud:not(.hidden) + .touch-controls {
+    display: flex;
+  }
+  #loadout-hud {
+    display: none;
+  }
+  .hud-vitals,
+  .hud-overdrive {
+    bottom: 132px;
+  }
   .mobile-note {
     display: block;
   }
