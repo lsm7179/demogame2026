@@ -421,6 +421,7 @@ function freshState() {
     shieldRefresh: true,
     history: [],
     hazardCooldowns: {},
+    zoneProgress: {},
   };
 }
 function buildStats() {
@@ -1376,6 +1377,9 @@ function updateBullets(dt) {
             b.hitIds?.push(s);
             s.charge = Math.min(100, s.charge + (s.gain || 16));
             s.lastHit = state.elapsed;
+            const source = b.echo ? "echo" : "player";
+            s.hitSources ||= [];
+            if (!s.hitSources.includes(source)) s.hitSources.push(source);
             const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "relay");
             b.pierce = impact.pierce;
             gone = impact.removed;
@@ -1613,8 +1617,20 @@ function buildArena() {
   const world = activeWorld();
   if (world) {
     rooms = world.zones.map((zone) => ({ ...zone }));
-    walls = world.walls.map((wall) => ({ ...wall, open: false }));
-    switches = world.switches.map((item) => ({ ...item, charge: 0, lastHit: -9 }));
+    walls = [
+      ...world.walls.map((wall) => ({ ...wall, open: false })),
+      ...(world.progressionGates || []).map((gate) => ({
+        ...gate,
+        open: false,
+        progressionGate: true,
+      })),
+    ];
+    switches = world.switches.map((item) => ({
+      ...item,
+      charge: 0,
+      lastHit: -9,
+      hitSources: [],
+    }));
     shuttle = world.shuttle
       ? {
           ...world.shuttle,
@@ -1672,8 +1688,10 @@ function updateObjectives(dt) {
     ? 1.45
     : 1;
   for (const s of switches) {
-    if (state.elapsed - s.lastHit > 0.18)
+    if (state.elapsed - s.lastHit > 0.18) {
       s.charge = Math.max(0, s.charge - (s.decay || 13) * diff.relayDecay * dt);
+      if (s.charge <= 0) s.hitSources = [];
+    }
     const gate = s.gateId ? walls.find((w) => w.id === s.gateId) : walls.find((w) => w.gate);
     if (gate) gate.open = s.charge >= (s.threshold || 42);
   }
@@ -1705,6 +1723,42 @@ function updateObjectives(dt) {
     timeWarp = 0.45;
   }
   state.shieldTimer = Math.max(0, state.shieldTimer - dt);
+}
+function updateZoneProgression(dt) {
+  const world = activeWorld();
+  if (!world) return;
+  const currentZone = WorldCore.zoneAt(world.zones, player);
+  const previous = state.zoneProgress;
+  const next = ZoneObjectiveCore.tick(
+    previous,
+    world,
+    {
+      currentZoneId: currentZone?.id,
+      difficultyId: diff.id,
+      enemies,
+      warnings,
+      switches,
+      shuttle,
+      player,
+      monsters: MonsterData,
+    },
+    dt
+  );
+  for (const gateConfig of world.progressionGates || []) {
+    const gate = walls.find((wall) => wall.id === gateConfig.id && wall.progressionGate);
+    const wasComplete = previous[gateConfig.zoneId]?.complete;
+    const isComplete = next[gateConfig.zoneId]?.complete;
+    if (gate) gate.open = Boolean(isComplete);
+    if (!wasComplete && isComplete) {
+      const zone = world.zones.find((item) => item.id === gateConfig.zoneId);
+      state.score += zone?.objective === "elite" ? 600 : 200;
+      shake = Math.max(shake, zone?.objective === "elite" ? 10 : 5);
+      timeWarp = Math.max(timeWarp, zone?.objective === "elite" ? 0.5 : 0.25);
+      burst(gateConfig.x, gateConfig.y + gateConfig.h / 2, "#45f5e9", 18, 170);
+      sfx.shield();
+    }
+  }
+  state.zoneProgress = next;
 }
 function damageCore(dmg, byEcho) {
   if (state.collapsing) return;
@@ -1836,6 +1890,7 @@ function resetLoopWorld() {
   core = o.c;
   relays = o.rs;
   buildArena();
+  state.zoneProgress = activeWorld() ? ZoneObjectiveCore.createProgress(activeWorld()) : {};
   updateCameraTracking(0, true);
   state.elapsed = 0;
   state.shieldTimer = 0;
@@ -2300,15 +2355,22 @@ function updateHUD() {
   const encounter = currentEncounter();
   const world = activeWorld();
   const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
+  const progressionGate = world?.progressionGates?.find((item) => item.zoneId === zone?.id);
+  const progressionRecord = zone ? state.zoneProgress[zone.id] : null;
   ui.objective.textContent = world
-    ? UiCore.objectiveAlert({
-        zoneName: zone?.name,
-        anchor: zone?.objective === "anchor",
-        shieldOpen: state.shieldTimer > 0,
-        activeRelays: relays.filter((r) => r.active).length,
-        requiredRelays: objective.requiredRelays,
-        gateClosed: Boolean(gate && !gate.open && player.x > 1250 && player.x < 2100),
-      })
+    ? progressionGate && progressionRecord && !progressionRecord.complete
+      ? ZoneObjectiveCore.shortStatus(zone, progressionRecord, progressionGate, {
+          difficultyId: diff.id,
+          shuttle,
+        })
+      : UiCore.objectiveAlert({
+          zoneName: zone?.name,
+          anchor: zone?.objective === "anchor",
+          shieldOpen: state.shieldTimer > 0,
+          activeRelays: relays.filter((r) => r.active).length,
+          requiredRelays: objective.requiredRelays,
+          gateClosed: Boolean(gate && !gate.open && player.x > 1250 && player.x < 2100),
+        })
     : encounter && encounter.objective !== "anchor"
       ? state.roomCleared
         ? "ROOM CLEAR — REACH THE EXIT"
@@ -2510,10 +2572,14 @@ function renderArena() {
       ctx.fillStyle = "rgba(0,0,0,.38)";
       ctx.fillRect(w.x + 9, w.y + 10, w.w, w.h);
     }
-    ctx.fillStyle = w.open ? "rgba(69,245,233,.08)" : "rgba(70,116,185,.45)";
+    ctx.fillStyle = w.open
+      ? "rgba(69,245,233,.08)"
+      : w.progressionGate
+        ? "rgba(124,48,91,.62)"
+        : "rgba(70,116,185,.45)";
     ctx.fillRect(w.x, w.y, w.w, w.h);
     if (!w.open) {
-      ctx.strokeStyle = "rgba(151,207,247,.48)";
+      ctx.strokeStyle = w.progressionGate ? "rgba(239,94,151,.7)" : "rgba(151,207,247,.48)";
       ctx.lineWidth = 2;
       ctx.strokeRect(w.x + 1, w.y + 1, w.w - 2, w.h - 2);
       ctx.strokeStyle = "rgba(121,186,242,.3)";
@@ -2535,6 +2601,15 @@ function renderArena() {
     if (w.gate) {
       ctx.strokeStyle = w.open ? "#45f5e9" : "#659cff";
       ctx.strokeRect(w.x, w.y, w.w, w.h);
+    }
+    if (w.progressionGate && !w.open) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,102,155,.55)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([7, 9]);
+      ctx.strokeRect(w.x - 4, w.y - 4, w.w + 8, w.h + 8);
+      ctx.setLineDash([]);
+      ctx.restore();
     }
   }
   if (shuttle) {
@@ -3178,6 +3253,7 @@ function update(dt) {
   updateWorldHazards(dt);
   updateBullets(dt);
   updateObjectives(dt);
+  updateZoneProgression(dt);
   updateExplosions(dt);
   updatePickups(dt);
   updateRoomProgression();

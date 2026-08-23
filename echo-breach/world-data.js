@@ -11,6 +11,10 @@
     height: 1080,
     cameraFollowRate: 7.5,
     playerStart: { x: 130, y: 540 },
+    progressionGates: [
+      { id: "containment-lock", zoneId: "containment-hall", x: 1120, y: 380, w: 30, h: 320 },
+      { id: "warden-lock", zoneId: "infested-lab", x: 2520, y: 380, w: 30, h: 320 },
+    ],
     zones: [
       {
         id: "containment-hall",
@@ -137,6 +141,18 @@
     height: 1080,
     cameraFollowRate: 7.5,
     playerStart: { x: 130, y: 540 },
+    progressionGates: [
+      { id: "approach-lock", zoneId: "long-range-approach", x: 1290, y: 430, w: 32, h: 220 },
+      {
+        id: "split-progress-lock",
+        zoneId: "echo-gate",
+        x: 2660,
+        y: 430,
+        w: 32,
+        h: 220,
+        switchId: "split-switch",
+      },
+    ],
     zones: [
       {
         id: "long-range-approach",
@@ -247,6 +263,18 @@
     cameraFollowRate: 7.5,
     playerStart: { x: 130, y: 540 },
     shuttle: { x: 2050, y: 540, hp: 260, survivors: 12 },
+    progressionGates: [
+      { id: "evac-lock", zoneId: "evac-approach", x: 1340, y: 420, w: 32, h: 240 },
+      {
+        id: "rescue-lock",
+        zoneId: "survivor-hangar",
+        x: 2740,
+        y: 420,
+        w: 32,
+        h: 240,
+        minSurvivors: { story: 1, operative: 6, paradox: 8 },
+      },
+    ],
     hazards: [
       { id: "rift-floor-a", x: 1120, y: 110, w: 330, h: 310, damage: 9, interval: 0.8 },
       { id: "rift-floor-b", x: 1520, y: 660, w: 390, h: 280, damage: 9, interval: 0.8 },
@@ -348,6 +376,18 @@
     height: 1080,
     cameraFollowRate: 7.5,
     playerStart: { x: 130, y: 540 },
+    progressionGates: [
+      { id: "memory-lock", zoneId: "memory-intake", x: 1360, y: 430, w: 32, h: 220 },
+      {
+        id: "mirror-lock",
+        zoneId: "mirror-vault",
+        x: 2840,
+        y: 430,
+        w: 32,
+        h: 220,
+        surviveSeconds: 9,
+      },
+    ],
     zones: [
       {
         id: "memory-intake",
@@ -443,6 +483,20 @@
     height: 1120,
     cameraFollowRate: 7.8,
     playerStart: { x: 130, y: 560 },
+    progressionGates: [
+      { id: "causeway-lock", zoneId: "ai-causeway", x: 1460, y: 450, w: 32, h: 220 },
+      {
+        id: "convergence-lock",
+        zoneId: "convergence-array",
+        x: 3000,
+        y: 450,
+        w: 32,
+        h: 220,
+        syncGroup: "prime-convergence",
+        requiredDevices: 3,
+        requiredEchoes: 1,
+      },
+    ],
     hazards: [
       { id: "prime-rift-a", x: 1240, y: 160, w: 280, h: 260, damage: 10, interval: 0.8 },
       { id: "prime-rift-b", x: 1890, y: 710, w: 340, h: 250, damage: 10, interval: 0.8 },
@@ -518,7 +572,38 @@
       { x: 3620, y: 320, w: 300, h: 28 },
       { x: 3620, y: 772, w: 300, h: 28 },
     ],
-    switches: [],
+    switches: [
+      {
+        id: "prime-sync-a",
+        x: 2120,
+        y: 220,
+        r: 31,
+        threshold: 60,
+        gain: 15,
+        decay: 18,
+        syncGroup: "prime-convergence",
+      },
+      {
+        id: "prime-sync-b",
+        x: 2120,
+        y: 900,
+        r: 31,
+        threshold: 60,
+        gain: 15,
+        decay: 18,
+        syncGroup: "prime-convergence",
+      },
+      {
+        id: "prime-sync-c",
+        x: 2680,
+        y: 560,
+        r: 31,
+        threshold: 60,
+        gain: 15,
+        decay: 18,
+        syncGroup: "prime-convergence",
+      },
+    ],
     shortcuts: [],
     objective: {
       core: { x: 4320, y: 560 },
@@ -541,6 +626,14 @@
     return Object.freeze({
       ...world,
       playerStart: Object.freeze({ ...world.playerStart }),
+      progressionGates: Object.freeze(
+        (world.progressionGates || []).map((item) =>
+          Object.freeze({
+            ...item,
+            minSurvivors: item.minSurvivors ? Object.freeze({ ...item.minSurvivors }) : undefined,
+          })
+        )
+      ),
       zones: Object.freeze(
         world.zones.map((zone) =>
           Object.freeze({
