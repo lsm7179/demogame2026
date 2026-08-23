@@ -645,13 +645,27 @@ function musicTone(freq, duration, accent = false) {
   oscillator.start(t);
   oscillator.stop(t + duration);
 }
+function playCue(name) {
+  for (const note of AudioCore.CUES[name] || [])
+    setTimeout(
+      () => tone(note.type, note.frequency, note.duration, note.volume, note.slide),
+      (note.delay || 0) * 1000
+    );
+}
 function updateMusic() {
   if (!audio || muted || state.paused || state.mode !== "playing") return;
   const world = activeWorld();
   const zone = world ? WorldCore.zoneAt(world.zones, player) : null;
   const zoneIndex = world && zone ? world.zones.indexOf(zone) : 0;
+  const blocked = Boolean(
+    zone &&
+      world?.progressionGates?.some(
+        (gate) => gate.zoneId === zone.id && !state.zoneProgress[zone.id]?.complete
+      )
+  );
   const nextScene = AudioCore.sceneFor({
     bossAlive: enemies.some((enemy) => enemy.alive && enemy.boss),
+    blocked,
     zoneIndex,
     zoneCount: world?.zones.length || 1,
   });
@@ -1347,6 +1361,7 @@ function updateEnemies(dt) {
         }
         timeWarp = 0.45;
         shake = 8;
+        playCue("bossPhase");
         combatText(e.x, e.y - e.r - 18, "패턴 변화", "#f0b76b", true);
       }
       e.attackTimer -= dt;
@@ -1516,7 +1531,7 @@ function damageEnemy(e, dmg, byEcho, impact = null, skipSynergy = false) {
     if (sync.opened) {
       combatText(e.x, e.y - e.r - 18, "시간 방벽 붕괴", "#73c9bf", true);
       timeWarp = 0.42;
-      sfx.shield();
+      playCue("barrier");
     } else return;
   }
   if (!skipSynergy) {
@@ -1867,7 +1882,7 @@ function updateZoneProgression(dt) {
         "#73c9bf",
         true
       );
-      sfx.shield();
+      playCue("barrier");
     }
   }
   state.zoneProgress = next;
@@ -2145,6 +2160,7 @@ function nextLoop() {
   state.shieldRefresh = true;
   screens.transition.classList.add("hidden");
   resetLoopWorld();
+  playCue("echoJoin");
   timeWarp = 0.65;
   last = performance.now();
 }
