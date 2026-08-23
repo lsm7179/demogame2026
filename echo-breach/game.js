@@ -1475,7 +1475,12 @@ function damageEnemy(e, dmg, byEcho, impact = null, skipSynergy = false) {
     hitStop = Math.max(hitStop, elite ? 0.07 : 0.035);
     if (elite) shake = Math.max(shake, 8);
     burst(e.x, e.y, elite ? "#f0b76b" : "#ff4c70", elite ? 30 : 18, elite ? 260 : 200);
-    if (elite) combatText(e.x, e.y - e.r - 14, "정예 처치", "#f0b76b", true);
+    if (e.type === "rift-warden") {
+      combatText(e.x, e.y - e.r - 18, "RIFT WARDEN 격파", "#73c9bf", true);
+      timeWarp = Math.max(timeWarp, 0.65);
+      shake = Math.max(shake, 12);
+      burst(e.x, e.y, "#73c9bf", 42, 300);
+    } else if (elite) combatText(e.x, e.y - e.r - 14, "정예 처치", "#f0b76b", true);
     else if (state.combo >= CombatFeedback.config.comboFeedbackThreshold)
       combatText(
         e.x,
@@ -1751,10 +1756,17 @@ function updateZoneProgression(dt) {
     if (gate) gate.open = Boolean(isComplete);
     if (!wasComplete && isComplete) {
       const zone = world.zones.find((item) => item.id === gateConfig.zoneId);
-      state.score += zone?.objective === "elite" ? 600 : 200;
+      state.score += gateConfig.rewardScore || (zone?.objective === "elite" ? 600 : 200);
       shake = Math.max(shake, zone?.objective === "elite" ? 10 : 5);
       timeWarp = Math.max(timeWarp, zone?.objective === "elite" ? 0.5 : 0.25);
       burst(gateConfig.x, gateConfig.y + gateConfig.h / 2, "#45f5e9", 18, 170);
+      combatText(
+        gateConfig.x - 30,
+        gateConfig.y + gateConfig.h / 2,
+        gateConfig.unlockLabel || "봉쇄 해제",
+        "#73c9bf",
+        true
+      );
       sfx.shield();
     }
   }

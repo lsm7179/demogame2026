@@ -13,7 +13,16 @@
     playerStart: { x: 130, y: 540 },
     progressionGates: [
       { id: "containment-lock", zoneId: "containment-hall", x: 1120, y: 380, w: 30, h: 320 },
-      { id: "warden-lock", zoneId: "infested-lab", x: 2520, y: 380, w: 30, h: 320 },
+      {
+        id: "warden-lock",
+        zoneId: "infested-lab",
+        x: 2520,
+        y: 380,
+        w: 30,
+        h: 320,
+        unlockLabel: "WARDEN 봉쇄 해제",
+        rewardScore: 600,
+      },
     ],
     zones: [
       {
