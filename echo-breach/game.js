@@ -447,7 +447,11 @@ function bindInputs() {
     updateMouseWorld();
     mouse.inside = true;
   });
-  canvas.addEventListener("pointerenter", () => {
+  canvas.addEventListener("pointerenter", (e) => {
+    const r = canvas.getBoundingClientRect();
+    mouse.sx = e.clientX - r.left;
+    mouse.sy = e.clientY - r.top;
+    updateMouseWorld();
     mouse.inside = true;
   });
   canvas.addEventListener("pointerdown", (e) => {
@@ -546,10 +550,14 @@ function updateCameraTracking(dt, snap = false) {
   } else if (snap) {
     camera = WorldCore.cameraForFocus(player, world, { width: BASE.W, height: BASE.H });
   } else {
-    camera = WorldCore.updateCamera(camera, player, dt, world.cameraFollowRate, world, {
-      width: BASE.W,
-      height: BASE.H,
-    });
+    camera = WorldCore.updateCamera(
+      camera,
+      player,
+      dt,
+      world,
+      { width: BASE.W, height: BASE.H },
+      world.cameraFollowRate
+    );
   }
   updateMouseWorld();
 }

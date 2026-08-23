@@ -8,9 +8,11 @@
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
   function clampCamera(camera, world, viewport) {
+    const x = Number.isFinite(camera?.x) ? camera.x : 0;
+    const y = Number.isFinite(camera?.y) ? camera.y : 0;
     return {
-      x: clamp(camera.x, 0, Math.max(0, world.width - viewport.width)),
-      y: clamp(camera.y, 0, Math.max(0, world.height - viewport.height)),
+      x: clamp(x, 0, Math.max(0, world.width - viewport.width)),
+      y: clamp(y, 0, Math.max(0, world.height - viewport.height)),
     };
   }
 

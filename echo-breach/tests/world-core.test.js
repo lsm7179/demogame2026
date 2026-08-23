@@ -25,6 +25,21 @@ test("camera follows smoothly and remains inside the continuous world", () => {
   });
 });
 
+test("camera recovery never propagates non-finite coordinates into rendering", () => {
+  const world = worlds.awakening;
+  assert.deepEqual(core.clampCamera({ x: NaN, y: Infinity }, world, viewport), { x: 0, y: 0 });
+  const recovered = core.updateCamera(
+    { x: NaN, y: Infinity },
+    { x: 1800, y: 540 },
+    1 / 60,
+    world,
+    viewport,
+    world.cameraFollowRate
+  );
+  assert.ok(Number.isFinite(recovered.x));
+  assert.ok(Number.isFinite(recovered.y));
+});
+
 test("Stage 1 continuous world is larger than the viewport and fully data driven", () => {
   const world = worlds.awakening;
   assert.equal(world.mode, "continuous");
