@@ -7,6 +7,7 @@
 
   const monsterTempo = Object.freeze({
     spawnDelayMultiplier: 0.25,
+    bossSpawnDelayMultiplier: 0.4,
     monsterHpMultiplier: 0.7,
     minimumSpawnInterval: 0.08,
   });

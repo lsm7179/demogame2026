@@ -1154,6 +1154,7 @@ function queueEnemies() {
       warnings.push(
         ...WaveCore.expandZoneWaves(zone, {
           spawnDelayMultiplier: GameBalance.monsterTempo.spawnDelayMultiplier,
+          bossSpawnDelayMultiplier: GameBalance.monsterTempo.bossSpawnDelayMultiplier,
           minimumSpawnInterval: GameBalance.monsterTempo.minimumSpawnInterval,
           isBoss: (type) => Boolean(MonsterData[type]?.boss),
         }).map((warning) => ({
@@ -1178,6 +1179,7 @@ function queueEnemies() {
         enemyIndex: i,
         isBoss,
         spawnDelayMultiplier: GameBalance.monsterTempo.spawnDelayMultiplier,
+        bossSpawnDelayMultiplier: GameBalance.monsterTempo.bossSpawnDelayMultiplier,
         minimumSpawnInterval: GameBalance.monsterTempo.minimumSpawnInterval,
       }),
       targetShuttle: stage.number === 3 && i % 3 === 0,
