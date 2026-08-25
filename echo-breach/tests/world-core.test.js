@@ -43,13 +43,33 @@ test("camera recovery never propagates non-finite coordinates into rendering", (
 test("Stage 1 continuous world is larger than the viewport and fully data driven", () => {
   const world = worlds.awakening;
   assert.equal(world.mode, "continuous");
-  assert.ok(world.width > viewport.width * 2);
+  assert.equal(world.width, 2750);
+  assert.ok(world.width <= 3900 * 0.71);
   assert.ok(world.height > viewport.height);
-  assert.equal(world.zones.length, 3);
-  assert.equal(world.switches.length, 1);
-  assert.equal(world.shortcuts.length, 1);
+  assert.equal(world.zones.length, 2);
+  assert.equal(world.switches.length, 0);
+  assert.equal(world.shortcuts.length, 0);
   assert.equal(world.objective.relayPositions.length, 2);
   assert.ok(world.zones.every((zone) => zone.waves.length === zone.spawnPoints.length));
+});
+
+test("compressed Stage 1 keeps every encounter inside an eight-point-six-second travel budget", () => {
+  const world = worlds.awakening;
+  const directDistance = Math.hypot(
+    world.objective.core.x - world.playerStart.x,
+    world.objective.core.y - world.playerStart.y
+  );
+  assert.ok(directDistance / 265 <= 8.6);
+  assert.equal(world.zones[0].x + world.zones[0].w, world.zones[1].x);
+  for (const zone of world.zones)
+    for (const spawn of zone.spawnPoints) {
+      assert.ok(spawn.x >= zone.x && spawn.x <= zone.x + zone.w);
+      assert.ok(spawn.y >= zone.y && spawn.y <= zone.y + zone.h);
+    }
+  for (const relay of world.objective.relayPositions) {
+    assert.ok(relay.x > world.zones[1].x && relay.x < world.width);
+    assert.ok(relay.y > 0 && relay.y < world.height);
+  }
 });
 
 test("continuous loop reset restores transient actors but preserves cumulative state", () => {
@@ -58,15 +78,14 @@ test("continuous loop reset restores transient actors but preserves cumulative s
   assert.deepEqual(reset.persistent, persistent);
   assert.notEqual(reset.persistent, persistent);
   assert.deepEqual(reset.transient.playerStart, worlds.awakening.playerStart);
-  assert.equal(reset.transient.enemies.length, 13);
+  assert.equal(reset.transient.enemies.length, 8);
   assert.ok(reset.transient.switches.every((item) => item.charge === 0));
   assert.ok(reset.transient.relays.every((item) => item.charge === 0 && !item.active));
 });
 
 test("zone lookup tracks player depth without camera state", () => {
   assert.equal(core.zoneAt(worlds.awakening.zones, { x: 200, y: 540 }).id, "containment-hall");
-  assert.equal(core.zoneAt(worlds.awakening.zones, { x: 1700, y: 540 }).id, "infested-lab");
-  assert.equal(core.zoneAt(worlds.awakening.zones, { x: 3300, y: 540 }).id, "anchor-chamber");
+  assert.equal(core.zoneAt(worlds.awakening.zones, { x: 1700, y: 540 }).id, "anchor-chamber");
 });
 
 test("Stage 2 is a continuous gate world with a reachable moving relay", () => {

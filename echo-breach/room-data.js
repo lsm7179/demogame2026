@@ -11,7 +11,7 @@
         {
           id: "containment-hall",
           name: "CONTAINMENT HALL",
-          objective: "eliminate",
+          objective: "elite",
           playerStart: { x: 120, y: 360 },
           exit: { x: 1175, y: 360, r: 42 },
           walls: [
@@ -20,30 +20,12 @@
             { x: 820, y: 45, w: 18, h: 220 },
             { x: 820, y: 455, w: 18, h: 220 },
           ],
-          waves: ["chaser", "leech", "shooter", "chaser"],
+          waves: ["chaser", "leech", "shooter", "rift-warden"],
           spawnPoints: [
             { x: 520, y: 150 },
             { x: 620, y: 570 },
             { x: 1040, y: 180 },
             { x: 1060, y: 550 },
-          ],
-        },
-        {
-          id: "infested-lab",
-          name: "INFESTED LAB",
-          objective: "elite",
-          playerStart: { x: 105, y: 590 },
-          exit: { x: 1175, y: 120, r: 42 },
-          walls: [
-            { x: 300, y: 230, w: 420, h: 18 },
-            { x: 560, y: 470, w: 420, h: 18 },
-          ],
-          waves: ["blocker", "exploder", "chaser", "shooter", "exploder"],
-          spawnPoints: [
-            { x: 430, y: 120 },
-            { x: 790, y: 350 },
-            { x: 1080, y: 580 },
-            { x: 1080, y: 130 },
           ],
         },
         {

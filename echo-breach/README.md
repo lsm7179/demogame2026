@@ -116,7 +116,7 @@ SPLIT SHOT, PULSE CANNON, CHARGE LANCE, ECHO AMPLIFIER, EXTENDED MEMORY, RECORD 
 - `QA_BASELINE.md`: 기술 부채 정리 전 회귀 기준값
 - `tests/`: Node 내장 테스트 러너 기반 자동 회귀 테스트
 
-로컬 UI 검수는 `?ui-preview=equipment`, `upgrade`, `pause`, `ending`으로 선택·설정·엔딩 화면을 직접 열 수 있습니다. `?stage-preview=1~5&zone=1~3`은 연속 월드 구역을 엽니다. 이 진입점은 `localhost`와 `127.0.0.1`에서만 동작합니다.
+로컬 UI 검수는 `?ui-preview=equipment`, `upgrade`, `pause`, `ending`으로 선택·설정·엔딩 화면을 직접 열 수 있습니다. `?stage-preview=2~5&zone=1~3`은 연속 월드 구역을 열며 Stage 1 보스는 `?boss-preview=mid` 또는 `final`로 확인합니다. 이 진입점은 `localhost`와 `127.0.0.1`에서만 동작합니다.
 
 로컬 Stage 1 플레이 기록은 출시 저장과 분리된 `echoBreachPlaytestsV2` 키에 최근 50회까지 보관됩니다. `?playtest-report=1`은 로컬 서버에서만 요약과 원본 기록을 보여주며 배포 호스트에서는 활성화되지 않습니다.
 

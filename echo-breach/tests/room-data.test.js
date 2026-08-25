@@ -67,15 +67,15 @@ test("Stage 2 keeps one temporal gate between both halves", () => {
   assert.ok(reachable(layout, starts["split-current"], { x: 990, y: 335 }));
 });
 
-test("Stage 1 advances through three ordered combat rooms", () => {
+test("Stage 1 advances through two compressed combat rooms", () => {
   const encounters = layouts.awakening.encounters;
   assert.deepEqual(
     encounters.map((room) => room.id),
-    ["containment-hall", "infested-lab", "anchor-chamber"]
+    ["containment-hall", "anchor-chamber"]
   );
   assert.deepEqual(
     encounters.map((room) => room.objective),
-    ["eliminate", "elite", "anchor"]
+    ["elite", "anchor"]
   );
 });
 

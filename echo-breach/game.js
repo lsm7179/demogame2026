@@ -3688,7 +3688,7 @@ function openLocalUiPreview() {
     startStage();
     const bossType = bossPreview === "mid" ? "rift-warden" : "chrono-abomination";
     warnings = warnings.filter((item) => item.type !== bossType);
-    const point = bossPreview === "mid" ? { x: 1650, y: 540 } : { x: 3100, y: 540 };
+    const point = bossPreview === "mid" ? { x: 930, y: 540 } : { x: 2100, y: 540 };
     spawnEnemy({ x: point.x + 170, y: point.y, type: bossType, elite: true });
     player.x = point.x;
     player.y = point.y;
