@@ -1549,7 +1549,9 @@ function updateBullets(dt) {
         for (const r of relays)
           if (!b.hitIds?.includes(r) && hit(b, r)) {
             b.hitIds?.push(r);
-            r.charge = Math.min(objective.relayChargeMax, r.charge + objective.relayGain);
+            const progress = ObjectiveData.registerRelayHit(objective, r.hits);
+            r.hits = progress.hits;
+            r.charge = progress.charge;
             r.lastHit = state.elapsed;
             const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "relay");
             b.pierce = impact.pierce;
@@ -1563,7 +1565,10 @@ function updateBullets(dt) {
         if (state.shieldTimer > 0 && !guardianPending) {
           damageCore(b.damage * (b.coreDamageMultiplier || 1), b.echo);
           burst(b.x, b.y, "#fff", 6, 85);
-        } else spark(b.x, b.y, "#69a6ff");
+        } else {
+          spark(b.x, b.y, "#69a6ff");
+          if (guardianPending) combatText(core.x, core.y - core.r - 14, "보스 보호막", "#ff9aaa");
+        }
         gone = true;
       }
     }
@@ -1787,6 +1792,7 @@ function makeObjectives() {
         baseY: p.y,
         r: 30,
         charge: 0,
+        hits: 0,
         active: false,
         lastHit: -9,
         index: i,
@@ -1866,9 +1872,6 @@ function updateWorldHazards(dt) {
 }
 function updateObjectives(dt) {
   const objective = activeObjective();
-  const guardSupport = enemies.some((enemy) => enemy.alive && enemy.behavior === "guard-core")
-    ? 1.45
-    : 1;
   for (const s of switches) {
     if (state.elapsed - s.lastHit > 0.18) {
       s.charge = Math.max(0, s.charge - (s.decay || 13) * diff.relayDecay * dt);
@@ -1883,9 +1886,7 @@ function updateObjectives(dt) {
       r.y = r.baseY + Math.sin(state.elapsed * 1.5) * 28;
     }
     const was = r.active;
-    if (state.elapsed - r.lastHit > 0.18)
-      r.charge = Math.max(0, r.charge - objective.relayDecay * diff.relayDecay * guardSupport * dt);
-    r.active = r.charge >= objective.relayChargeMax;
+    r.active = (r.hits || 0) >= (objective.relayHitsToActivate || 7);
     if (r.active && !was) {
       state.score += 250;
       sfx.relay();

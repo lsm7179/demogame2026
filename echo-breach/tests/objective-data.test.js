@@ -9,6 +9,7 @@ test("playable stage objectives are valid and fully positioned", () => {
     assert.equal(objectives.isValid(objectives[id]), true, id);
     assert.equal(objectives[id].relayCount, 2, id);
     assert.equal(objectives[id].requiredRelays, 2, id);
+    assert.equal(objectives[id].relayHitsToActivate, 7, id);
   }
 });
 
@@ -31,9 +32,26 @@ test("objective validation rejects impossible relay requirements", () => {
   );
 });
 
-test("Prime Anchor requires three simultaneous relay roles", () => {
+test("Prime Anchor uses two seven-hit subcores", () => {
   const prime = objectives["prime-anchor"];
   assert.equal(objectives.isValid(prime), true);
-  assert.equal(prime.relayCount, 3);
-  assert.equal(prime.requiredRelays, 3);
+  assert.equal(prime.relayCount, 2);
+  assert.equal(prime.requiredRelays, 2);
+  assert.equal(prime.relayHitsToActivate, 7);
+});
+
+test("a subcore activates on exactly the seventh cumulative hit", () => {
+  const config = objectives.awakening;
+  let hits = 0;
+  let progress;
+  for (let index = 0; index < 6; index++) {
+    progress = objectives.registerRelayHit(config, hits);
+    hits = progress.hits;
+  }
+  assert.equal(progress.active, false);
+  assert.equal(progress.charge, (config.relayChargeMax * 6) / 7);
+  progress = objectives.registerRelayHit(config, hits);
+  assert.equal(progress.hits, 7);
+  assert.equal(progress.charge, config.relayChargeMax);
+  assert.equal(progress.active, true);
 });

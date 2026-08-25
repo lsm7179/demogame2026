@@ -14,7 +14,8 @@
       relayPositions: Object.freeze(relayPositions.map((p) => Object.freeze({ ...p }))),
       movingRelayIndex,
       relayChargeMax: 100,
-      relayGain: 12,
+      relayHitsToActivate: 7,
+      relayGain: 100 / 7,
       relayDecay: 8,
       shieldOpenSeconds: 5.3,
     });
@@ -45,7 +46,6 @@
     "prime-anchor": objective("anchor", { x: 640, y: 335 }, [
       { x: 420, y: 190 },
       { x: 860, y: 190 },
-      { x: 640, y: 520 },
     ]),
   };
 
@@ -59,5 +59,15 @@
     );
   }
 
-  return Object.freeze({ ...data, isValid });
+  function registerRelayHit(config, currentHits = 0) {
+    const hitsRequired = Math.max(1, config.relayHitsToActivate || 7);
+    const hits = Math.min(hitsRequired, Math.max(0, currentHits) + 1);
+    return Object.freeze({
+      hits,
+      charge: (config.relayChargeMax * hits) / hitsRequired,
+      active: hits >= hitsRequired,
+    });
+  }
+
+  return Object.freeze({ ...data, isValid, registerRelayHit });
 });
