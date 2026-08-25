@@ -5,6 +5,16 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
+  const monsterTempo = Object.freeze({
+    spawnDelayMultiplier: 0.25,
+    monsterHpMultiplier: 0.7,
+    minimumSpawnInterval: 0.08,
+  });
+
+  function scaledMonsterHp(baseHp, isBoss = false) {
+    return Math.max(1, baseHp * (isBoss ? 1 : monsterTempo.monsterHpMultiplier));
+  }
+
   return Object.freeze({
     baseFireInterval: 0.22,
     splitShot: Object.freeze({
@@ -15,6 +25,8 @@
     chargeLance: Object.freeze({
       fullChargeSeconds: 1.25,
     }),
+    monsterTempo,
+    scaledMonsterHp,
     overdrive: Object.freeze({
       maxGauge: 100,
       duration: 8,

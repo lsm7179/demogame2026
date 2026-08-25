@@ -39,3 +39,23 @@ test("rescue waves preserve their shuttle target through warning expansion", () 
   assert.equal(warning.targetShuttle, true);
   assert.equal(warning.zoneId, "hangar");
 });
+
+test("monster tempo scales normal waves, spaces spawns, and preserves boss staging", () => {
+  const options = {
+    spawnDelayMultiplier: 0.25,
+    minimumSpawnInterval: 0.08,
+    isBoss: (type) => type === "boss",
+  };
+  const zone = {
+    id: "tempo",
+    spawnPoints: [{ x: 10, y: 20 }],
+    waveGroups: [
+      { delay: 4, enemies: ["chaser", "shooter"] },
+      { delay: 7, enemies: ["boss"] },
+    ],
+  };
+  const warnings = WaveCore.expandZoneWaves(zone, options);
+  assert.equal(warnings[0].activationDelay, 1);
+  assert.equal(warnings[1].activationDelay, 1.08);
+  assert.equal(warnings[2].activationDelay, 7);
+});

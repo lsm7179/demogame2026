@@ -20,6 +20,12 @@ test("Charge Lance automatically releases at the full-charge duration", () => {
   assert.equal(GameBalance.chargeLance.fullChargeSeconds, 1.25);
 });
 
+test("regular monster health scales to 70 percent while boss health stays unchanged", () => {
+  assert.equal(GameBalance.monsterTempo.monsterHpMultiplier, 0.7);
+  assert.equal(GameBalance.scaledMonsterHp(95, false), 66.5);
+  assert.equal(GameBalance.scaledMonsterHp(280, true), 280);
+});
+
 test("Temporal Overdrive uses the configured eight-second combat modifiers", () => {
   assert.deepEqual(GameBalance.overdrive, {
     maxGauge: 100,

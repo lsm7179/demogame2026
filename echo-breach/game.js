@@ -1137,7 +1137,7 @@ function enemyStats(type) {
   const m = MonsterData[type] || MonsterData.chaser;
   return {
     r: m.radius,
-    hp: m.hp,
+    hp: GameBalance.scaledMonsterHp(m.hp, m.boss),
     speed: m.speed,
     score: m.score,
     behavior: m.behavior,
@@ -1152,7 +1152,11 @@ function queueEnemies() {
   if (world) {
     for (const zone of world.zones)
       warnings.push(
-        ...WaveCore.expandZoneWaves(zone).map((warning) => ({
+        ...WaveCore.expandZoneWaves(zone, {
+          spawnDelayMultiplier: GameBalance.monsterTempo.spawnDelayMultiplier,
+          minimumSpawnInterval: GameBalance.monsterTempo.minimumSpawnInterval,
+          isBoss: (type) => Boolean(MonsterData[type]?.boss),
+        }).map((warning) => ({
           ...warning,
           targetShuttle: warning.targetShuttle || false,
         }))
@@ -1165,10 +1169,17 @@ function queueEnemies() {
   for (let i = 0; i < count; i++) {
     const p = randomEdge(),
       type = source[i % source.length];
+    const isBoss = Boolean(MonsterData[type]?.boss);
     warnings.push({
       ...p,
       type,
-      timer: 0.7 + i * 0.23,
+      timer: WaveCore.spawnDelayFor({
+        baseDelay: 0.7,
+        enemyIndex: i,
+        isBoss,
+        spawnDelayMultiplier: GameBalance.monsterTempo.spawnDelayMultiplier,
+        minimumSpawnInterval: GameBalance.monsterTempo.minimumSpawnInterval,
+      }),
       targetShuttle: stage.number === 3 && i % 3 === 0,
     });
   }
