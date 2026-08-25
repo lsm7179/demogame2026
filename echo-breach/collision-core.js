@@ -70,5 +70,21 @@
     return result;
   }
 
-  return Object.freeze({ overlaps, moveCircle });
+  function nearestOpenPoint(point, walls, bounds, radius) {
+    const circle = {
+      x: clamp(point.x, bounds.minX, bounds.maxX),
+      y: clamp(point.y, bounds.minY, bounds.maxY),
+      r: radius,
+    };
+    for (let pass = 0; pass <= walls.length; pass += 1) {
+      const wall = walls.find((item) => overlaps(circle, item));
+      if (!wall) break;
+      separate(circle, wall);
+      circle.x = clamp(circle.x, bounds.minX, bounds.maxX);
+      circle.y = clamp(circle.y, bounds.minY, bounds.maxY);
+    }
+    return { x: circle.x, y: circle.y };
+  }
+
+  return Object.freeze({ nearestOpenPoint, overlaps, moveCircle });
 });

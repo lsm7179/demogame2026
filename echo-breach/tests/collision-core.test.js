@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { overlaps, moveCircle } = require("../collision-core.js");
+const { nearestOpenPoint, overlaps, moveCircle } = require("../collision-core.js");
 
 const bounds = { minX: 15, maxX: 300, minY: 15, maxY: 220 };
 const wall = { x: 120, y: 30, w: 20, h: 160, open: false };
@@ -41,4 +41,11 @@ test("open walls never block movement", () => {
   const actor = { x: 70, y: 100, r: 15 };
   moveCircle(actor, 180, 0, [{ ...wall, open: true }], bounds);
   assert.ok(Math.abs(actor.x - 250) < 1e-9);
+});
+
+test("targets inside walls resolve to the nearest deterministic open point", () => {
+  const target = nearestOpenPoint({ x: 130, y: 100 }, [wall], bounds, 15);
+  assert.deepEqual(target, { x: 105, y: 100 });
+  assert.deepEqual(nearestOpenPoint({ x: 130, y: 100 }, [wall], bounds, 15), target);
+  assert.equal(overlaps({ ...target, r: 15 }, wall), false);
 });

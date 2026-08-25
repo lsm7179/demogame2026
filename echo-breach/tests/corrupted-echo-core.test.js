@@ -27,31 +27,39 @@ test("corrupted Echo stops at its final recorded pose instead of extrapolating f
   });
 });
 
-test("corrupted Echo replay remains inside its spawn zone", () => {
+test("corrupted Echo converts absolute recordings into a scaled local path", () => {
+  const samples = [
+    { t: 0, x: 100, y: 500, a: 0 },
+    { t: 1, x: 1100, y: -500, a: -0.5 },
+  ];
   const bounds = { x: 900, y: 80, w: 1150, h: 920 };
-  assert.deepEqual(core.clampPoseToZone({ x: 2600, y: -300, angle: 1 }, bounds, 30), {
-    x: 2020,
-    y: 110,
-    angle: 1,
-  });
-  assert.deepEqual(core.clampPoseToZone({ x: 1400, y: 500 }, bounds, 30), {
-    x: 1400,
-    y: 500,
-  });
+  const transform = core.createLocalReplayTransform(samples, { x: 1500, y: 540 }, bounds, 0, 30);
+  const first = core.localReplayTarget(core.samplePose(samples, 0), transform);
+  const last = core.localReplayTarget(core.samplePose(samples, 1), transform);
+  assert.deepEqual(first, { x: 1500, y: 540, angle: 0 });
+  assert.ok(last.x >= bounds.x + 30 && last.x <= bounds.x + bounds.w - 30);
+  assert.ok(last.y >= bounds.y + 30 && last.y <= bounds.y + bounds.h - 30);
+  assert.ok(transform.scale < 1);
 });
 
-test("corrupted Echo cannot drift indefinitely along a recorded travel path", () => {
-  const limited = core.limitPoseDisplacement(
-    { x: 1500, y: -500, angle: -0.4 },
-    { x: 1000, y: 500 },
-    200
-  );
-  assert.ok(Math.abs(Math.hypot(limited.x - 1000, limited.y - 500) - 200) < 0.001);
-  assert.equal(limited.angle, -0.4);
-  assert.deepEqual(core.limitPoseDisplacement({ x: 1050, y: 520 }, { x: 1000, y: 500 }, 200), {
-    x: 1050,
-    y: 520,
-  });
+test("local replay transforms are deterministic and separate spawn order", () => {
+  const samples = [
+    { t: 0, x: 0, y: 0 },
+    { t: 2, x: 400, y: 100 },
+  ];
+  const spawn = { x: 1300, y: 500 };
+  const bounds = { x: 900, y: 80, w: 1150, h: 920 };
+  const first = core.createLocalReplayTransform(samples, spawn, bounds, 2);
+  const repeated = core.createLocalReplayTransform(samples, spawn, bounds, 2);
+  const next = core.createLocalReplayTransform(samples, spawn, bounds, 3);
+  assert.deepEqual(first, repeated);
+  assert.notDeepEqual(first, next);
+});
+
+test("corrupted Echo movement is speed limited without teleporting", () => {
+  const step = core.movementStep({ x: 100, y: 100 }, { x: 1000, y: 100 }, 1, 135);
+  assert.deepEqual(step, { x: core.CONFIG.maxFrameDistance, y: 0 });
+  assert.deepEqual(core.movementStep({ x: 0, y: 0 }, { x: 3, y: 4 }, 1, 135), { x: 3, y: 4 });
 });
 
 test("live corruption waits two seconds while completed recordings replay immediately", () => {

@@ -2,6 +2,13 @@
 
 All notable ECHO BREACH changes are recorded here. The project follows Semantic Versioning while it remains a prototype.
 
+## [0.9.2] - 2026-08-25
+
+### Fixed
+
+- Rebuilt hostile Echo movement from first-sample-relative paths with deterministic local scaling, speed-limited motion, and wall-safe targets.
+- Added matching cache versions to every local CSS and JavaScript resource and release validation for future version changes.
+
 ## [0.9.0] - 2026-08-23
 
 ### Added

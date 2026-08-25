@@ -11,7 +11,10 @@
     projectileSpeed: 210,
     maxShotsPerTick: 2,
     telegraphSeconds: 0.34,
-    maxReplayDisplacement: 190,
+    replayMoveSpeed: 135,
+    maxFrameDistance: 9,
+    pathPadding: 34,
+    spawnOffset: 18,
   });
 
   function angleLerp(a, b, t) {
@@ -48,34 +51,74 @@
     return Math.max(-1, elapsed - (hasCompletedRecording ? 0 : liveDelay));
   }
 
-  function clampPoseToZone(pose, bounds, padding = 24) {
-    if (!pose || !bounds) return pose;
+  function createLocalReplayTransform(
+    samples,
+    spawn,
+    bounds,
+    sequence = 0,
+    padding = CONFIG.pathPadding
+  ) {
+    if (!Array.isArray(samples) || samples.length === 0 || !spawn || !bounds) return null;
+    const source = samples[0];
+    const angle = (Math.max(0, sequence) % 6) * (Math.PI / 3);
+    const offsetRadius = sequence > 0 ? CONFIG.spawnOffset : 0;
     const minX = bounds.x + padding;
     const maxX = bounds.x + bounds.w - padding;
     const minY = bounds.y + padding;
     const maxY = bounds.y + bounds.h - padding;
+    const originX = Math.max(minX, Math.min(maxX, spawn.x + Math.cos(angle) * offsetRadius));
+    const originY = Math.max(minY, Math.min(maxY, spawn.y + Math.sin(angle) * offsetRadius));
+    let negativeX = 0;
+    let positiveX = 0;
+    let negativeY = 0;
+    let positiveY = 0;
+    for (const sample of samples) {
+      const dx = sample.x - source.x;
+      const dy = sample.y - source.y;
+      negativeX = Math.min(negativeX, dx);
+      positiveX = Math.max(positiveX, dx);
+      negativeY = Math.min(negativeY, dy);
+      positiveY = Math.max(positiveY, dy);
+    }
+    const ratios = [1];
+    if (negativeX < 0) ratios.push((originX - minX) / -negativeX);
+    if (positiveX > 0) ratios.push((maxX - originX) / positiveX);
+    if (negativeY < 0) ratios.push((originY - minY) / -negativeY);
+    if (positiveY > 0) ratios.push((maxY - originY) / positiveY);
     return {
-      ...pose,
-      x: Math.max(minX, Math.min(maxX, pose.x)),
-      y: Math.max(minY, Math.min(maxY, pose.y)),
+      sourceX: source.x,
+      sourceY: source.y,
+      originX,
+      originY,
+      scale: Math.max(0, Math.min(...ratios)),
     };
   }
 
-  function limitPoseDisplacement(pose, origin, maximum = CONFIG.maxReplayDisplacement) {
-    if (!pose || !origin || maximum <= 0) return pose;
-    const dx = pose.x - origin.x;
-    const dy = pose.y - origin.y;
+  function localReplayTarget(pose, transform) {
+    if (!pose || !transform) return null;
+    return {
+      x: transform.originX + (pose.x - transform.sourceX) * transform.scale,
+      y: transform.originY + (pose.y - transform.sourceY) * transform.scale,
+      angle: pose.angle,
+    };
+  }
+
+  function movementStep(current, target, dt, speed = CONFIG.replayMoveSpeed) {
+    if (!current || !target || !Number.isFinite(dt) || dt <= 0) return { x: 0, y: 0 };
+    const dx = target.x - current.x;
+    const dy = target.y - current.y;
     const distance = Math.hypot(dx, dy);
-    if (distance <= maximum) return { ...pose };
-    const scale = maximum / distance;
-    return { ...pose, x: origin.x + dx * scale, y: origin.y + dy * scale };
+    if (distance < 0.001) return { x: 0, y: 0 };
+    const travel = Math.min(distance, speed * dt, CONFIG.maxFrameDistance);
+    return { x: (dx / distance) * travel, y: (dy / distance) * travel };
   }
 
   return Object.freeze({
     CONFIG,
-    clampPoseToZone,
     collectShots,
-    limitPoseDisplacement,
+    createLocalReplayTransform,
+    localReplayTarget,
+    movementStep,
     playbackTime,
     samplePose,
   });

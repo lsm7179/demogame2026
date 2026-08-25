@@ -303,6 +303,7 @@ let save = loadSave(),
   warnings = [],
   echoes = [],
   recordings = [];
+let corruptedSpawnSequence = 0;
 let pendingEquipmentFlow = null,
   equipmentSelectionLocked = false;
 let raf = 0,
@@ -1199,6 +1200,7 @@ function spawnEnemy(w) {
   const bossConfig = BossData[w.type] || null;
   const corruptZone =
     q.behavior === "corrupted-replay" ? WorldCore.zoneAt(activeWorld()?.zones || [], w) : null;
+  const corruptOrder = q.behavior === "corrupted-replay" ? corruptedSpawnSequence++ : 0;
   const firstBossPoint =
     bossConfig?.movement?.points?.[0] || bossConfig?.movement?.phasePoints?.[0]?.[0];
   enemies.push({
@@ -1238,12 +1240,14 @@ function spawnEnemy(w) {
     hurt: 0,
     stun: 0,
     corruptCursor: 0,
-    corruptOffset: null,
     corruptOrigin: q.behavior === "corrupted-replay" ? { x: w.x, y: w.y } : null,
     corruptBounds: corruptZone
       ? { x: corruptZone.x, y: corruptZone.y, w: corruptZone.w, h: corruptZone.h }
       : null,
+    corruptOrder,
+    corruptTransform: null,
     corruptPending: [],
+    moveFacing: 0,
   });
 }
 function enemyShoot(e, target) {
@@ -1395,16 +1399,33 @@ function updateEnemies(dt) {
       const playback = CorruptedEchoCore.playbackTime(state.elapsed, completed);
       const pose = CorruptedEchoCore.samplePose(recording?.samples, playback);
       if (pose) {
-        if (!e.corruptOffset) e.corruptOffset = { x: e.x - pose.x, y: e.y - pose.y };
         const oldX = e.x;
         const oldY = e.y;
-        const localPose = CorruptedEchoCore.limitPoseDisplacement(
-          { x: pose.x + e.corruptOffset.x, y: pose.y + e.corruptOffset.y },
-          e.corruptOrigin
+        e.corruptTransform ||= CorruptedEchoCore.createLocalReplayTransform(
+          recording.samples,
+          e.corruptOrigin,
+          e.corruptBounds,
+          e.corruptOrder,
+          e.r + CorruptedEchoCore.CONFIG.pathPadding
         );
-        const boundedPose = CorruptedEchoCore.clampPoseToZone(localPose, e.corruptBounds, e.r + 8);
-        e.x = clamp(boundedPose.x, 55, worldSize().width - 55);
-        e.y = clamp(boundedPose.y, 60, worldSize().height - 55);
+        const replayTarget = CorruptedEchoCore.localReplayTarget(pose, e.corruptTransform);
+        const size = worldSize();
+        const clearTarget = CollisionCore.nearestOpenPoint(
+          replayTarget,
+          walls,
+          {
+            minX: 42,
+            maxX: size.width - 42,
+            minY: 55,
+            maxY: size.height - 42,
+          },
+          e.r
+        );
+        const step = CorruptedEchoCore.movementStep(e, clearTarget, dt);
+        moveActor(e, step.x, step.y);
+        e.vx = dt > 0 ? (e.x - oldX) / dt : 0;
+        e.vy = dt > 0 ? (e.y - oldY) / dt : 0;
+        if (Math.hypot(e.vx, e.vy) > 1) e.moveFacing = Math.atan2(e.vy, e.vx);
         e.angle = pose.angle;
         e.wobble += Math.hypot(e.x - oldX, e.y - oldY) * 0.012;
         const due = CorruptedEchoCore.collectShots(recording.events, e.corruptCursor, playback);
@@ -2089,6 +2110,7 @@ function resetLoopWorld() {
   pickups = [];
   explosions = [];
   enemies = [];
+  corruptedSpawnSequence = 0;
   const o = makeObjectives();
   core = o.c;
   relays = o.rs;
@@ -3077,13 +3099,17 @@ function renderEnemies() {
         ctx.stroke();
       }
       const target = e.targetShuttle && shuttle?.hp > 0 ? shuttle : player;
-      const facing = e.bossConfig ? e.bossMoveFacing : Math.atan2(target.y - e.y, target.x - e.x);
+      const facing = e.bossConfig
+        ? e.bossMoveFacing
+        : monster.visual === "corrupted"
+          ? e.moveFacing
+          : Math.atan2(target.y - e.y, target.x - e.x);
       ctx.rotate(facing);
       ctx.scale(1 - e.hurt * 0.16, 1 + e.hurt * 0.2);
       if (monster.visual === "hound") renderRiftHound(e, color, pulse);
       else if (monster.visual === "caster") renderSporeCaster(e, color, pulse);
       else if (monster.visual === "brute") renderAnchorBrute(e, color, pulse);
-      else renderSpecialMonster(e, monster, pulse);
+      else renderSpecialMonster(e, monster, pulse, facing);
       if (e.bossConfig) {
         const shielded = !BossCore.shieldOpen(e.bossState, state.elapsed);
         ctx.strokeStyle = shielded ? "#73c9bf" : "rgba(115,201,191,.2)";
@@ -3130,7 +3156,7 @@ function renderEnemies() {
       ctx.fillRect(e.x - e.r, e.y - e.r - 8, (e.r * 2 * e.hp) / e.maxHp, 3);
     }
 }
-function renderSpecialMonster(e, monster, pulse) {
+function renderSpecialMonster(e, monster, pulse, facing = 0) {
   ctx.fillStyle = e.hitFlash > 0 ? "#fff" : monster.color;
   if (monster.visual === "prime") {
     poly(0, 0, e.r * pulse, 8, Math.PI / 8);
@@ -3157,7 +3183,7 @@ function renderSpecialMonster(e, monster, pulse) {
     for (const pending of e.corruptPending || []) {
       const progress = 1 - pending.timer / CorruptedEchoCore.CONFIG.telegraphSeconds;
       ctx.save();
-      ctx.rotate(pending.angle - Math.atan2(player.y - e.y, player.x - e.x));
+      ctx.rotate(pending.angle - facing);
       ctx.strokeStyle = `rgba(255,96,128,${0.25 + progress * 0.65})`;
       ctx.lineWidth = 2 + progress * 2;
       ctx.beginPath();
