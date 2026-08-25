@@ -11,7 +11,7 @@ const BASE = Object.freeze({
   PLAYER_HP: 100,
   FIRE_RATE: GameBalance.baseFireInterval,
   BULLET_SPEED: 760,
-  PLAYER_DAMAGE: 12,
+  PLAYER_DAMAGE: 12 * GameBalance.playerCombat.damageMultiplier,
   DASH_SPEED: 720,
   DASH_TIME: 0.14,
   DASH_CD: 1.35,
@@ -733,6 +733,10 @@ function hit(a, b) {
   const r = a.r + b.r;
   return dist2(a, b) < r * r;
 }
+function playerProjectileHitsEnemy(projectile, enemy) {
+  const r = GameBalance.playerProjectileHitRadius(projectile.r, enemy.r);
+  return dist2(projectile, enemy) < r * r;
+}
 function poly(x, y, r, n, rot = 0) {
   ctx.beginPath();
   for (let i = 0; i < n; i++) {
@@ -903,7 +907,7 @@ function makeShotProfile(angle, charge = 0) {
       fireInterval: stats.fireRate,
       speed: BASE.BULLET_SPEED,
       range: BASE.BULLET_SPEED * 1.4,
-      size: 3,
+      size: 3 * GameBalance.playerCombat.projectileSizeMultiplier,
       charge,
     },
     save.loadout,
@@ -1519,7 +1523,7 @@ function updateBullets(dt) {
     }
     if (!gone && b.team === "player") {
       for (const e of enemies)
-        if (e.alive && !b.hitIds?.includes(e) && hit(b, e)) {
+        if (e.alive && !b.hitIds?.includes(e) && playerProjectileHitsEnemy(b, e)) {
           b.hitIds?.push(e);
           damageEnemy(e, b.damage, b.echo, b);
           const impact = EquipmentCore.resolveProjectileImpact(b.pierce, "enemy");

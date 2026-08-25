@@ -36,6 +36,15 @@ test("boss staging uses the faster capped spawn timing", () => {
   assert.equal(GameBalance.monsterTempo.spawnDelayMultiplier, 0.25);
 });
 
+test("player combat gains thirty percent damage, projectile size, and enemy hurtbox", () => {
+  assert.deepEqual(GameBalance.playerCombat, {
+    damageMultiplier: 1.3,
+    projectileSizeMultiplier: 1.3,
+    enemyHurtboxMultiplier: 1.3,
+  });
+  assert.equal(GameBalance.playerProjectileHitRadius(3.9, 20), 29.9);
+});
+
 test("Temporal Overdrive uses the configured eight-second combat modifiers", () => {
   assert.deepEqual(GameBalance.overdrive, {
     maxGauge: 100,

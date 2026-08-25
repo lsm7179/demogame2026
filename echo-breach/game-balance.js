@@ -22,6 +22,16 @@
     );
   }
 
+  const playerCombat = Object.freeze({
+    damageMultiplier: 1.3,
+    projectileSizeMultiplier: 1.3,
+    enemyHurtboxMultiplier: 1.3,
+  });
+
+  function playerProjectileHitRadius(projectileRadius, enemyRadius) {
+    return projectileRadius + enemyRadius * playerCombat.enemyHurtboxMultiplier;
+  }
+
   return Object.freeze({
     baseFireInterval: 0.22,
     splitShot: Object.freeze({
@@ -34,6 +44,8 @@
     }),
     monsterTempo,
     scaledMonsterHp,
+    playerCombat,
+    playerProjectileHitRadius,
     overdrive: Object.freeze({
       maxGauge: 100,
       duration: 8,
