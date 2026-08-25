@@ -47,5 +47,18 @@
     return Math.max(-1, elapsed - (hasCompletedRecording ? 0 : liveDelay));
   }
 
-  return Object.freeze({ CONFIG, collectShots, playbackTime, samplePose });
+  function clampPoseToZone(pose, bounds, padding = 24) {
+    if (!pose || !bounds) return pose;
+    const minX = bounds.x + padding;
+    const maxX = bounds.x + bounds.w - padding;
+    const minY = bounds.y + padding;
+    const maxY = bounds.y + bounds.h - padding;
+    return {
+      ...pose,
+      x: Math.max(minX, Math.min(maxX, pose.x)),
+      y: Math.max(minY, Math.min(maxY, pose.y)),
+    };
+  }
+
+  return Object.freeze({ CONFIG, clampPoseToZone, collectShots, playbackTime, samplePose });
 });

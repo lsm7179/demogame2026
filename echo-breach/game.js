@@ -1197,6 +1197,8 @@ function queueEnemies() {
 function spawnEnemy(w) {
   const q = enemyStats(w.type);
   const bossConfig = BossData[w.type] || null;
+  const corruptZone =
+    q.behavior === "corrupted-replay" ? WorldCore.zoneAt(activeWorld()?.zones || [], w) : null;
   const firstBossPoint =
     bossConfig?.movement?.points?.[0] || bossConfig?.movement?.phasePoints?.[0]?.[0];
   enemies.push({
@@ -1237,6 +1239,9 @@ function spawnEnemy(w) {
     stun: 0,
     corruptCursor: 0,
     corruptOffset: null,
+    corruptBounds: corruptZone
+      ? { x: corruptZone.x, y: corruptZone.y, w: corruptZone.w, h: corruptZone.h }
+      : null,
     corruptPending: [],
   });
 }
@@ -1392,8 +1397,13 @@ function updateEnemies(dt) {
         if (!e.corruptOffset) e.corruptOffset = { x: e.x - pose.x, y: e.y - pose.y };
         const oldX = e.x;
         const oldY = e.y;
-        e.x = clamp(pose.x + e.corruptOffset.x, 55, worldSize().width - 55);
-        e.y = clamp(pose.y + e.corruptOffset.y, 60, worldSize().height - 55);
+        const boundedPose = CorruptedEchoCore.clampPoseToZone(
+          { x: pose.x + e.corruptOffset.x, y: pose.y + e.corruptOffset.y },
+          e.corruptBounds,
+          e.r + 8
+        );
+        e.x = clamp(boundedPose.x, 55, worldSize().width - 55);
+        e.y = clamp(boundedPose.y, 60, worldSize().height - 55);
         e.angle = pose.angle;
         e.wobble += Math.hypot(e.x - oldX, e.y - oldY) * 0.012;
         const due = CorruptedEchoCore.collectShots(recording.events, e.corruptCursor, playback);

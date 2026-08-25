@@ -15,6 +15,31 @@ test("corrupted Echo pose replays recorded world coordinates by elapsed time", (
   assert.ok(Math.abs(pose.angle - Math.PI / 4) < 0.001);
 });
 
+test("corrupted Echo stops at its final recorded pose instead of extrapolating forever", () => {
+  const samples = [
+    { t: 0, x: 100, y: 500, a: 0 },
+    { t: 1, x: 180, y: 420, a: -0.5 },
+  ];
+  assert.deepEqual(core.samplePose(samples, 20), {
+    x: 180,
+    y: 420,
+    angle: -0.5,
+  });
+});
+
+test("corrupted Echo replay remains inside its spawn zone", () => {
+  const bounds = { x: 900, y: 80, w: 1150, h: 920 };
+  assert.deepEqual(core.clampPoseToZone({ x: 2600, y: -300, angle: 1 }, bounds, 30), {
+    x: 2020,
+    y: 110,
+    angle: 1,
+  });
+  assert.deepEqual(core.clampPoseToZone({ x: 1400, y: 500 }, bounds, 30), {
+    x: 1400,
+    y: 500,
+  });
+});
+
 test("live corruption waits two seconds while completed recordings replay immediately", () => {
   assert.equal(core.playbackTime(1, false), -1);
   assert.equal(core.playbackTime(3, false), 1);
