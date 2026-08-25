@@ -20,10 +20,13 @@ test("Charge Lance automatically releases at the full-charge duration", () => {
   assert.equal(GameBalance.chargeLance.fullChargeSeconds, 1.25);
 });
 
-test("regular monster health scales to 70 percent while boss health stays unchanged", () => {
+test("regular monster health scales to 70 percent and boss health scales to 60 percent", () => {
   assert.equal(GameBalance.monsterTempo.monsterHpMultiplier, 0.7);
+  assert.equal(GameBalance.monsterTempo.bossHpMultiplier, 0.6);
   assert.equal(GameBalance.scaledMonsterHp(95, false), 66.5);
-  assert.equal(GameBalance.scaledMonsterHp(280, true), 280);
+  assert.equal(GameBalance.scaledMonsterHp(280, true), 168);
+  assert.equal(GameBalance.scaledMonsterHp(520, true), 312);
+  assert.equal(GameBalance.scaledMonsterHp(760, true), 456);
 });
 
 test("boss staging uses the faster capped spawn timing", () => {

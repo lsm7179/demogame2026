@@ -9,13 +9,17 @@
     spawnDelayMultiplier: 0.25,
     bossSpawnDelayMultiplier: 0.15,
     monsterHpMultiplier: 0.7,
+    bossHpMultiplier: 0.6,
     minimumSpawnInterval: 0.08,
     minimumBossSpawnDelay: 0.25,
     maximumBossSpawnDelay: 2,
   });
 
   function scaledMonsterHp(baseHp, isBoss = false) {
-    return Math.max(1, baseHp * (isBoss ? 1 : monsterTempo.monsterHpMultiplier));
+    return Math.max(
+      1,
+      baseHp * (isBoss ? monsterTempo.bossHpMultiplier : monsterTempo.monsterHpMultiplier)
+    );
   }
 
   return Object.freeze({
