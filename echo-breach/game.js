@@ -1220,6 +1220,7 @@ function spawnEnemy(w) {
       ? { x: w.x - (firstBossPoint?.x || 0), y: w.y - (firstBossPoint?.y || 0) }
       : null,
     bossMovePose: null,
+    bossMoveFacing: 0,
     synergyState: {},
     attackTimer: 1.4,
     telegraph: 0,
@@ -1340,13 +1341,20 @@ function updateBossMovement(e, dt) {
   );
   const pose = BossCore.movementPose(e.bossConfig, movementElapsed, e.bossPhase);
   if (!pose) return;
+  const nextX = e.bossMovementOrigin.x + pose.x;
+  const nextY = e.bossMovementOrigin.y + pose.y;
+  const moveX = nextX - e.x;
+  const moveY = nextY - e.y;
+  if (pose.moving && Math.hypot(moveX, moveY) > 0.01) {
+    e.bossMoveFacing = Math.atan2(moveY, moveX);
+  }
   e.bossMovePose = {
     ...pose,
     targetX: e.bossMovementOrigin.x + pose.target.x,
     targetY: e.bossMovementOrigin.y + pose.target.y,
   };
-  e.x = e.bossMovementOrigin.x + pose.x;
-  e.y = e.bossMovementOrigin.y + pose.y;
+  e.x = nextX;
+  e.y = nextY;
   e.vx = 0;
   e.vy = 0;
 }
@@ -3053,7 +3061,8 @@ function renderEnemies() {
         ctx.stroke();
       }
       const target = e.targetShuttle && shuttle?.hp > 0 ? shuttle : player;
-      ctx.rotate(Math.atan2(target.y - e.y, target.x - e.x));
+      const facing = e.bossConfig ? e.bossMoveFacing : Math.atan2(target.y - e.y, target.x - e.x);
+      ctx.rotate(facing);
       ctx.scale(1 - e.hurt * 0.16, 1 + e.hurt * 0.2);
       if (monster.visual === "hound") renderRiftHound(e, color, pulse);
       else if (monster.visual === "caster") renderSporeCaster(e, color, pulse);
@@ -3079,7 +3088,6 @@ function renderEnemies() {
             -Math.PI / 2 + Math.PI * 2 * (1 - e.telegraph / profile.telegraphSeconds)
           );
           ctx.stroke();
-          const facing = Math.atan2(target.y - e.y, target.x - e.x);
           ctx.save();
           ctx.rotate(e.bossAim - facing);
           ctx.strokeStyle = "rgba(255,116,132,.72)";
