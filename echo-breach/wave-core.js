@@ -11,11 +11,13 @@
     spawnDelayMultiplier = 1,
     bossSpawnDelayMultiplier = 1,
     minimumSpawnInterval = 0.08,
+    minimumBossSpawnDelay = minimumSpawnInterval,
+    maximumBossSpawnDelay = Infinity,
   }) {
     if (isBoss)
-      return Math.max(
-        minimumSpawnInterval,
-        (baseDelay + enemyIndex * 0.18) * bossSpawnDelayMultiplier
+      return Math.min(
+        maximumBossSpawnDelay,
+        Math.max(minimumBossSpawnDelay, (baseDelay + enemyIndex * 0.18) * bossSpawnDelayMultiplier)
       );
     const interval = Math.max(minimumSpawnInterval, 0.18 * spawnDelayMultiplier);
     return Math.max(minimumSpawnInterval, baseDelay * spawnDelayMultiplier + enemyIndex * interval);
@@ -39,6 +41,8 @@
             spawnDelayMultiplier: options.spawnDelayMultiplier,
             bossSpawnDelayMultiplier: options.bossSpawnDelayMultiplier,
             minimumSpawnInterval: options.minimumSpawnInterval,
+            minimumBossSpawnDelay: options.minimumBossSpawnDelay,
+            maximumBossSpawnDelay: options.maximumBossSpawnDelay,
           }),
           armed: false,
           elite: Boolean(group.elite),

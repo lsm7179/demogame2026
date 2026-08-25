@@ -26,6 +26,13 @@ test("regular monster health scales to 70 percent while boss health stays unchan
   assert.equal(GameBalance.scaledMonsterHp(280, true), 280);
 });
 
+test("boss staging uses the faster capped spawn timing", () => {
+  assert.equal(GameBalance.monsterTempo.bossSpawnDelayMultiplier, 0.15);
+  assert.equal(GameBalance.monsterTempo.minimumBossSpawnDelay, 0.25);
+  assert.equal(GameBalance.monsterTempo.maximumBossSpawnDelay, 2);
+  assert.equal(GameBalance.monsterTempo.spawnDelayMultiplier, 0.25);
+});
+
 test("Temporal Overdrive uses the configured eight-second combat modifiers", () => {
   assert.deepEqual(GameBalance.overdrive, {
     maxGauge: 100,

@@ -17,6 +17,12 @@
       projectileDamage: 10,
       dashSpeed: 520,
       dashSeconds: 0.34,
+      movement: Object.freeze({
+        moveSpeed: 190,
+        holdSeconds: 2.4,
+        warningSeconds: 0.55,
+        points: Object.freeze([Object.freeze({ x: -150, y: 0 }), Object.freeze({ x: 150, y: 0 })]),
+      }),
       patternSets: Object.freeze([Object.freeze(["charge", "fan", "echo-fan"])]),
     }),
     "chrono-abomination": Object.freeze({
@@ -32,6 +38,18 @@
       phaseTwoProjectileCount: 12,
       projectileSpeed: 205,
       projectileDamage: 11,
+      movement: Object.freeze({
+        moveSpeed: 175,
+        holdSeconds: 2.2,
+        warningSeconds: 0.65,
+        points: Object.freeze([
+          Object.freeze({ x: 0, y: 0 }),
+          Object.freeze({ x: 185, y: -170 }),
+          Object.freeze({ x: 185, y: 170 }),
+          Object.freeze({ x: -165, y: 170 }),
+          Object.freeze({ x: -165, y: -170 }),
+        ]),
+      }),
       patternSets: Object.freeze([
         Object.freeze(["pursuit-fan", "radial"]),
         Object.freeze(["rift-ring", "safe-sector"]),
@@ -48,6 +66,29 @@
       projectileSpeeds: Object.freeze([190, 215, 235]),
       projectileDamages: Object.freeze([10, 11, 12]),
       telegraphSeconds: 0.95,
+      movement: Object.freeze({
+        moveSpeed: 185,
+        holdSeconds: 2.15,
+        warningSeconds: 0.65,
+        phasePoints: Object.freeze([
+          Object.freeze([
+            Object.freeze({ x: 0, y: 0 }),
+            Object.freeze({ x: -230, y: 0 }),
+            Object.freeze({ x: 230, y: 0 }),
+          ]),
+          Object.freeze([
+            Object.freeze({ x: 0, y: 0 }),
+            Object.freeze({ x: 190, y: -190 }),
+            Object.freeze({ x: -190, y: 190 }),
+          ]),
+          Object.freeze([
+            Object.freeze({ x: 0, y: 0 }),
+            Object.freeze({ x: 220, y: 150 }),
+            Object.freeze({ x: -220, y: 150 }),
+            Object.freeze({ x: 0, y: -190 }),
+          ]),
+        ]),
+      }),
       patternSets: Object.freeze([
         Object.freeze(["barrier-lines", "fan"]),
         Object.freeze(["corrupt-summon", "memory-volley"]),

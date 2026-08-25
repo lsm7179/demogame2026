@@ -33,3 +33,25 @@ test("Prime Weaver exposes three telegraphed phases through data", () => {
   assert.ok(phases[2].cooldown < phases[0].cooldown);
   assert.ok(phases.every((profile) => profile.telegraphSeconds >= 0.9));
 });
+
+test("boss movement follows deterministic time paths without player input", () => {
+  const config = BossData["rift-warden"];
+  const atStart = BossCore.movementPose(config, 0, 1);
+  const repeated = BossCore.movementPose(config, 0, 1);
+  const beforeMove = BossCore.movementPose(config, config.movement.holdSeconds - 0.2, 1);
+  const inTransit = BossCore.movementPose(config, config.movement.holdSeconds + 0.5, 1);
+  assert.deepEqual(atStart, repeated);
+  assert.equal(atStart.x, -150);
+  assert.equal(beforeMove.preparing, true);
+  assert.equal(inTransit.moving, true);
+  assert.ok(inTransit.x > -150 && inTransit.x < 150);
+});
+
+test("Prime Weaver movement paths vary by phase but remain reproducible", () => {
+  const config = BossData["prime-weaver"];
+  const elapsed = config.movement.holdSeconds + 0.8;
+  const phaseOne = BossCore.movementPose(config, elapsed, 1);
+  const phaseTwo = BossCore.movementPose(config, elapsed, 2);
+  assert.deepEqual(phaseTwo, BossCore.movementPose(config, elapsed, 2));
+  assert.notDeepEqual({ x: phaseOne.x, y: phaseOne.y }, { x: phaseTwo.x, y: phaseTwo.y });
+});

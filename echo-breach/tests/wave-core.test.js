@@ -43,8 +43,10 @@ test("rescue waves preserve their shuttle target through warning expansion", () 
 test("monster tempo scales normal waves, spaces spawns, and shortens boss staging", () => {
   const options = {
     spawnDelayMultiplier: 0.25,
-    bossSpawnDelayMultiplier: 0.4,
+    bossSpawnDelayMultiplier: 0.15,
     minimumSpawnInterval: 0.08,
+    minimumBossSpawnDelay: 0.25,
+    maximumBossSpawnDelay: 2,
     isBoss: (type) => type === "boss",
   };
   const zone = {
@@ -58,5 +60,16 @@ test("monster tempo scales normal waves, spaces spawns, and shortens boss stagin
   const warnings = WaveCore.expandZoneWaves(zone, options);
   assert.equal(warnings[0].activationDelay, 1);
   assert.equal(warnings[1].activationDelay, 1.08);
-  assert.ok(Math.abs(warnings[2].activationDelay - 2.8) < 1e-9);
+  assert.ok(Math.abs(warnings[2].activationDelay - 1.05) < 1e-9);
+});
+
+test("boss spawn staging is clamped between a quarter second and two seconds", () => {
+  const shared = {
+    isBoss: true,
+    bossSpawnDelayMultiplier: 0.15,
+    minimumBossSpawnDelay: 0.25,
+    maximumBossSpawnDelay: 2,
+  };
+  assert.equal(WaveCore.spawnDelayFor({ ...shared, baseDelay: 0.1 }), 0.25);
+  assert.equal(WaveCore.spawnDelayFor({ ...shared, baseDelay: 30 }), 2);
 });

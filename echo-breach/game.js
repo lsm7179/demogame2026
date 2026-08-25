@@ -1156,6 +1156,8 @@ function queueEnemies() {
           spawnDelayMultiplier: GameBalance.monsterTempo.spawnDelayMultiplier,
           bossSpawnDelayMultiplier: GameBalance.monsterTempo.bossSpawnDelayMultiplier,
           minimumSpawnInterval: GameBalance.monsterTempo.minimumSpawnInterval,
+          minimumBossSpawnDelay: GameBalance.monsterTempo.minimumBossSpawnDelay,
+          maximumBossSpawnDelay: GameBalance.monsterTempo.maximumBossSpawnDelay,
           isBoss: (type) => Boolean(MonsterData[type]?.boss),
         }).map((warning) => ({
           ...warning,
@@ -1181,6 +1183,8 @@ function queueEnemies() {
         spawnDelayMultiplier: GameBalance.monsterTempo.spawnDelayMultiplier,
         bossSpawnDelayMultiplier: GameBalance.monsterTempo.bossSpawnDelayMultiplier,
         minimumSpawnInterval: GameBalance.monsterTempo.minimumSpawnInterval,
+        minimumBossSpawnDelay: GameBalance.monsterTempo.minimumBossSpawnDelay,
+        maximumBossSpawnDelay: GameBalance.monsterTempo.maximumBossSpawnDelay,
       }),
       targetShuttle: stage.number === 3 && i % 3 === 0,
     });
@@ -1188,6 +1192,9 @@ function queueEnemies() {
 }
 function spawnEnemy(w) {
   const q = enemyStats(w.type);
+  const bossConfig = BossData[w.type] || null;
+  const firstBossPoint =
+    bossConfig?.movement?.points?.[0] || bossConfig?.movement?.phasePoints?.[0]?.[0];
   enemies.push({
     ...w,
     r: q.r,
@@ -1199,13 +1206,20 @@ function spawnEnemy(w) {
     boss: q.boss,
     elite: w.elite || q.elite,
     stageGuardian: q.stageGuardian,
-    bossConfig: BossData[w.type] || null,
+    bossConfig,
     bossState: {},
     bossPhase: 1,
     bossAttackIndex: 0,
     bossPattern: "radial",
     bossAim: 0,
     bossDash: 0,
+    bossSpawnElapsed: state.elapsed,
+    bossMovementPhaseStarted: state.elapsed,
+    bossMovementPaused: 0,
+    bossMovementOrigin: bossConfig
+      ? { x: w.x - (firstBossPoint?.x || 0), y: w.y - (firstBossPoint?.y || 0) }
+      : null,
+    bossMovePose: null,
     synergyState: {},
     attackTimer: 1.4,
     telegraph: 0,
@@ -1283,9 +1297,7 @@ function bossVolley(e) {
   if (["fan", "pursuit-fan", "echo-fan"].includes(pattern)) {
     bossFan(e, profile, e.bossAim, profile.projectileCount, pattern === "fan" ? 0.58 : 0.82);
   } else if (pattern === "charge") {
-    e.bossDash = e.bossConfig.dashSeconds;
-    e.dashX = Math.cos(e.bossAim);
-    e.dashY = Math.sin(e.bossAim);
+    bossFan(e, profile, e.bossAim, 3, 0.16);
   } else if (pattern === "barrier-lines") {
     for (const lane of [-2, -1, 0, 1, 2])
       bossProjectile(e, e.bossAim + lane * 0.12, profile, lane === 0 ? 0.78 : 1);
@@ -1318,6 +1330,26 @@ function bossVolley(e) {
   burst(e.x, e.y, "#c96b7a", 18, 150);
   tone("sawtooth", e.bossPhase >= 3 ? 82 : e.bossPhase === 2 ? 105 : 135, 0.22, 0.055, -35);
 }
+function updateBossMovement(e, dt) {
+  if (!e.bossConfig?.movement || !e.bossMovementOrigin) return;
+  const barrierOpen = BossCore.shieldOpen(e.bossState, state.elapsed);
+  if (barrierOpen) e.bossMovementPaused += dt;
+  const movementElapsed = Math.max(
+    0,
+    state.elapsed - e.bossMovementPhaseStarted - e.bossMovementPaused
+  );
+  const pose = BossCore.movementPose(e.bossConfig, movementElapsed, e.bossPhase);
+  if (!pose) return;
+  e.bossMovePose = {
+    ...pose,
+    targetX: e.bossMovementOrigin.x + pose.target.x,
+    targetY: e.bossMovementOrigin.y + pose.target.y,
+  };
+  e.x = e.bossMovementOrigin.x + pose.x;
+  e.y = e.bossMovementOrigin.y + pose.y;
+  e.vx = 0;
+  e.vy = 0;
+}
 function updateEnemies(dt) {
   for (const e of enemies) {
     if (!e.alive) continue;
@@ -1328,6 +1360,7 @@ function updateEnemies(dt) {
     e.hurt = Math.max(0, e.hurt - dt * 8);
     if (e.stun > 0) {
       e.stun -= dt;
+      if (e.bossConfig) updateBossMovement(e, dt);
       continue;
     }
     if (e.behavior === "corrupted-replay") {
@@ -1366,9 +1399,15 @@ function updateEnemies(dt) {
       if (phase !== e.bossPhase) {
         e.bossPhase = phase;
         e.bossAttackIndex = 0;
+        const phaseFirstPoint = e.bossConfig.movement?.phasePoints?.[Math.max(0, phase - 1)]?.[0] ||
+          e.bossConfig.movement?.points?.[0] || { x: 0, y: 0 };
+        e.bossMovementOrigin = {
+          x: e.x - phaseFirstPoint.x,
+          y: e.y - phaseFirstPoint.y,
+        };
+        e.bossMovementPhaseStarted = state.elapsed;
+        e.bossMovementPaused = 0;
         if (e.type === "chrono-abomination" && phase === 2) {
-          e.x = core.x - 260;
-          e.y = core.y;
           bullets = bullets.filter((bullet) => bullet.team === "player");
           burst(e.x, e.y, "#c94d72", 36, 260);
         }
@@ -1393,6 +1432,12 @@ function updateEnemies(dt) {
         e.telegraph = profile.telegraphSeconds;
         e.attackTimer = profile.cooldown + profile.telegraphSeconds;
       }
+      updateBossMovement(e, dt);
+      if (hit(e, player) && e.touch <= 0) {
+        hurtPlayer(10, e);
+        e.touch = 0.7;
+      }
+      continue;
     }
     const target = e.targetShuttle && shuttle && shuttle.hp > 0 ? shuttle : player;
     let tx = target.x,
@@ -1422,15 +1467,6 @@ function updateEnemies(dt) {
     if (["pursue", "leech", "explode"].includes(e.behavior)) {
       tx += Math.sin(e.wobble) * 32;
       ty += Math.cos(e.wobble * 0.8) * 32;
-    }
-    if (e.bossDash > 0) {
-      e.bossDash -= dt;
-      moveActor(e, e.dashX * e.bossConfig.dashSpeed * dt, e.dashY * e.bossConfig.dashSpeed * dt);
-      if (hit(e, player) && e.touch <= 0) {
-        hurtPlayer(e.bossConfig.projectileDamage + 4, e);
-        e.touch = 0.7;
-      }
-      continue;
     }
     const n = norm(tx - e.x, ty - e.y);
     e.vx = n.x * e.speed;
@@ -1544,6 +1580,8 @@ function damageEnemy(e, dmg, byEcho, impact = null, skipSynergy = false) {
     if (sync.opened) {
       combatText(e.x, e.y - e.r - 18, "시간 방벽 붕괴", "#73c9bf", true);
       timeWarp = 0.42;
+      shake = Math.max(shake, 7);
+      burst(e.x, e.y, "#73c9bf", 24, 220);
       playCue("barrier");
     } else return;
   }
@@ -1561,7 +1599,7 @@ function damageEnemy(e, dmg, byEcho, impact = null, skipSynergy = false) {
   e.hurt = 1;
   const reaction = CombatFeedback.impactReaction(critical);
   e.stun = Math.max(e.stun || 0, reaction.stun);
-  if (impact) {
+  if (impact && !e.bossConfig) {
     const direction = norm(impact.vx || 0, impact.vy || 0);
     moveActor(e, direction.x * reaction.knockback, direction.y * reaction.knockback);
   }
@@ -2506,37 +2544,45 @@ function updateHUD() {
     world?.progressionGates?.find((item) => item.zoneId === zone?.id) ||
     (zone && ["anchor", "final-boss"].includes(zone.objective) ? { zoneId: zone.id } : null);
   const progressionRecord = zone ? state.zoneProgress[zone.id] : null;
-  ui.objective.textContent = world
-    ? progressionGate && progressionRecord && !progressionRecord.complete
-      ? ZoneObjectiveCore.shortStatus(zone, progressionRecord, progressionGate, {
-          difficultyId: diff.id,
-          shuttle,
-          escortRules: world.escortRules,
-          switches,
-        })
-      : UiCore.objectiveAlert({
-          zoneName: zone?.name,
-          anchor: zone?.objective === "anchor",
-          shieldOpen: state.shieldTimer > 0,
-          activeRelays: relays.filter((r) => r.active).length,
-          requiredRelays: objective.requiredRelays,
-          gateClosed: Boolean(gate && !gate.open && player.x > 1250 && player.x < 2100),
-        })
-    : encounter && encounter.objective !== "anchor"
-      ? state.roomCleared
-        ? "ROOM CLEAR — REACH THE EXIT"
-        : `${encounter.name} — ELIMINATE HOSTILES`
-      : state.shieldTimer > 0
-        ? `ANCHOR EXPOSED // ${state.shieldTimer.toFixed(1)}s`
-        : stage.number === 2 && gate && !gate.open
-          ? "KEEP SWITCH CHARGED — OPEN THE GATE"
-          : relays.some((r) => r.active)
-            ? `${relays.filter((r) => r.active).length} / ${objective.requiredRelays} RELAYS SYNCHRONIZED`
-            : stage.number === 3
-              ? "RECORD ESCORT FIRE — THEN ATTACK RELAYS"
-              : echoes.length
-                ? "COORDINATE ALL THREE RELAYS"
-                : "RECORD FIRE ON ONE RELAY";
+  const activeBoss = enemies.find((enemy) => enemy.alive && enemy.bossConfig);
+  const bossBarrierRemaining = activeBoss
+    ? Math.max(0, (activeBoss.bossState.shieldOpenUntil || 0) - state.elapsed)
+    : 0;
+  ui.objective.textContent = activeBoss
+    ? bossBarrierRemaining > 0
+      ? `시간 방벽 개방 · ${bossBarrierRemaining.toFixed(1)}초`
+      : "플레이어와 Echo의 동시 사격 필요"
+    : world
+      ? progressionGate && progressionRecord && !progressionRecord.complete
+        ? ZoneObjectiveCore.shortStatus(zone, progressionRecord, progressionGate, {
+            difficultyId: diff.id,
+            shuttle,
+            escortRules: world.escortRules,
+            switches,
+          })
+        : UiCore.objectiveAlert({
+            zoneName: zone?.name,
+            anchor: zone?.objective === "anchor",
+            shieldOpen: state.shieldTimer > 0,
+            activeRelays: relays.filter((r) => r.active).length,
+            requiredRelays: objective.requiredRelays,
+            gateClosed: Boolean(gate && !gate.open && player.x > 1250 && player.x < 2100),
+          })
+      : encounter && encounter.objective !== "anchor"
+        ? state.roomCleared
+          ? "ROOM CLEAR — REACH THE EXIT"
+          : `${encounter.name} — ELIMINATE HOSTILES`
+        : state.shieldTimer > 0
+          ? `ANCHOR EXPOSED // ${state.shieldTimer.toFixed(1)}s`
+          : stage.number === 2 && gate && !gate.open
+            ? "KEEP SWITCH CHARGED — OPEN THE GATE"
+            : relays.some((r) => r.active)
+              ? `${relays.filter((r) => r.active).length} / ${objective.requiredRelays} RELAYS SYNCHRONIZED`
+              : stage.number === 3
+                ? "RECORD ESCORT FIRE — THEN ATTACK RELAYS"
+                : echoes.length
+                  ? "COORDINATE ALL THREE RELAYS"
+                  : "RECORD FIRE ON ONE RELAY";
   ui.tip.textContent =
     diff.id === "story"
       ? stage.number === 2
@@ -2989,6 +3035,23 @@ function renderEnemies() {
       const pulse = 1 + Math.sin(e.wobble * 4) * 0.06;
       ctx.save();
       ctx.translate(e.x, e.y);
+      if (e.bossMovePose?.preparing && !BossCore.shieldOpen(e.bossState, state.elapsed)) {
+        const markerX = e.bossMovePose.targetX - e.x;
+        const markerY = e.bossMovePose.targetY - e.y;
+        ctx.strokeStyle = "rgba(226,196,156,.78)";
+        ctx.fillStyle = "rgba(226,196,156,.1)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 7]);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(markerX, markerY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, e.r + 12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
       const target = e.targetShuttle && shuttle?.hp > 0 ? shuttle : player;
       ctx.rotate(Math.atan2(target.y - e.y, target.x - e.x));
       ctx.scale(1 - e.hurt * 0.16, 1 + e.hurt * 0.2);
