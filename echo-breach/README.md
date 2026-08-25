@@ -50,7 +50,11 @@ npm run check
 
 ## 플레이 가능한 스테이지
 
-- **Stage 1 — AWAKENING:** 3900×1080 연속 월드에서 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER를 화면 전환 없이 돌파합니다. Echo는 이전 루프의 전체 월드 경로를 재생하며, 스위치를 맡은 Echo가 중앙 지름길을 여는 동안 현재 플레이어가 더 깊이 전진해 릴레이 2개와 Anchor를 공략합니다.
+- **Stage 1 — AWAKENING:** 2750×1080의 두 핵심 구역에서 RIFT WARDEN을 돌파한 뒤 릴레이 2개와 Anchor를 공략합니다.
+- **Stage 2 — SPLIT CURRENT:** 3000×1080의 압축된 경로에서 Echo가 시간 스위치를 유지하는 동안 게이트를 통과합니다.
+- **Stage 3 — RESCUE WINDOW:** 3100×1080의 구조 경로에서 Echo에게 탈출선 호위를 맡기고 Anchor까지 전진합니다.
+- **Stage 4 — CORRUPTED RECORD:** 3200×1080의 기록고에서 과거 사격을 재생하는 오염 Echo를 견디고 봉쇄를 해제합니다.
+- **Stage 5 — PRIME ANCHOR:** 3450×1120의 수렴 구역에서 세 장치를 동기화하고 PRIME WEAVER와 최종 Anchor를 파괴합니다.
 - **Stage 2 — SPLIT CURRENT:** 스위치 제어실의 Echo가 사격을 계속해야 중앙 통로가 열리고 반대편 Anchor실로 진입할 수 있습니다.
 - **Stage 3 — RESCUE WINDOW:** 탈출선 격납고를 호위하는 기록을 남긴 뒤 연결 통로를 지나 릴레이실과 Anchor 제어실을 공략합니다.
 - **Stage 4 — CORRUPTED RECORD:** 현재 시간선은 2초 뒤, 완료 기록은 원래 시간대로 따라오는 오염된 Echo를 피해 기록 Anchor를 파괴합니다.

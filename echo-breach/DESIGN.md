@@ -66,9 +66,9 @@ NEXUS의 Chrono Anchor가 각 구역을 파괴 직전의 순간에 고정했다.
 
 ## 연속 월드와 연결형 룸 규칙
 
-Stage 1은 CONTAINMENT HALL, INFESTED LAB, ANCHOR CHAMBER를 하나의 월드 좌표계로 잇는다. 카메라는 현재 플레이어를 부드럽게 추적하지만 기록에는 위치·조준·실제 발사·대시의 월드 값만 저장한다. 중간 구역 진입은 Echo·총알·적·Shard·Overdrive를 초기화하거나 장비 화면을 열지 않는다. 루프 종료 때만 플레이어, 적, 릴레이, 스위치와 단기 전투 상태를 시작 상태로 복원하고 기록된 Echo와 Anchor 누적 피해 등 기존 영속 정책은 유지한다. 화면 밖 개체도 동일하게 업데이트하며 미니맵과 화면 가장자리 Echo 표식으로 위치를 안내한다.
+Stage 1은 CONTAINMENT HALL과 ANCHOR CHAMBER를 하나의 월드 좌표계로 잇는다. 카메라는 현재 플레이어를 부드럽게 추적하지만 기록에는 위치·조준·실제 발사·대시의 월드 값만 저장한다. 중간 구역 진입은 Echo·총알·적·Shard·Overdrive를 초기화하거나 장비 화면을 열지 않는다. 루프 종료 때만 플레이어, 적, 릴레이, 스위치와 단기 전투 상태를 시작 상태로 복원하고 기록된 Echo와 Anchor 누적 피해 등 기존 영속 정책은 유지한다. 화면 밖 개체도 동일하게 업데이트하며 미니맵과 화면 가장자리 Echo 표식으로 위치를 안내한다.
 
-Stage 2~5도 동일한 연속 월드 규칙을 사용한다. Stage 2는 Echo 스위치, Stage 3은 탈출선 호위와 위험 지대, Stage 4는 플레이 기록을 적대적으로 재생하는 오염 Echo, Stage 5는 세 릴레이와 3단계 중앙 AI 보스를 핵심 판단으로 삼는다.
+Stage 2~5도 동일한 연속 월드 규칙을 사용하며 목표까지의 직선 이동을 12초 이내로 제한한다. Stage 2는 Echo 스위치, Stage 3은 탈출선 호위와 위험 지대, Stage 4는 플레이 기록을 적대적으로 재생하는 오염 Echo, Stage 5는 세 동기화 장치와 3단계 중앙 AI 보스를 핵심 판단으로 삼는다.
 
 몬스터가 떨어뜨리는 Chrono Shard는 플레이어만 흡수한다. 게이지 100에서 8초 Overdrive가 자동 발동해 플레이어 연사 +25%, Echo 피해 +30%, Anchor 피해 +50%를 제공한다. Anchor는 ARMORED/CRACKED/UNSTABLE/CRITICAL/COLLAPSED 단계를 가지며 플레이어와 Echo가 0.25초 안에 명중하면 내부 쿨다운 후 Temporal Overload가 발생한다.
 

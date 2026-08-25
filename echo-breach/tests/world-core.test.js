@@ -91,7 +91,8 @@ test("zone lookup tracks player depth without camera state", () => {
 test("Stage 2 is a continuous gate world with a reachable moving relay", () => {
   const world = worlds["split-current"];
   assert.equal(world.mode, "continuous");
-  assert.ok(world.width > viewport.width * 3);
+  assert.equal(world.width, 3000);
+  assert.ok(world.width <= 4100 * 0.74);
   assert.equal(world.switches[0].gateId, "split-gate");
   assert.ok(world.walls.some((wall) => wall.id === "split-gate" && wall.gate));
   assert.equal(world.objective.movingRelayIndex, 1);
@@ -125,7 +126,8 @@ test("Stage 3 keeps rescue and hazard rules inside one continuous world", () => 
 test("Stage 4 is a continuous memory vault with corrupted Echo encounters", () => {
   const world = worlds["corrupted-record"];
   assert.equal(world.mode, "continuous");
-  assert.ok(world.width > viewport.width * 3);
+  assert.equal(world.width, 3200);
+  assert.ok(world.width <= 4400 * 0.73);
   assert.ok(world.zones.every((zone) => zone.waveGroups.length > 0 && zone.spawnPoints.length > 0));
   assert.ok(
     world.zones.filter((zone) =>
@@ -143,4 +145,29 @@ test("Stage 5 combines hazards, corrupted records, and a data-driven final boss"
   const finalZone = world.zones.at(-1);
   assert.equal(finalZone.objective, "final-boss");
   assert.ok(finalZone.waveGroups.some((group) => group.enemies.includes("prime-weaver")));
+});
+
+test("Stages 2 through 5 use compressed contiguous routes with reachable objectives", () => {
+  const expectedWidths = {
+    "split-current": 3000,
+    "rescue-window": 3100,
+    "corrupted-record": 3200,
+    "prime-anchor": 3450,
+  };
+  for (const [id, expectedWidth] of Object.entries(expectedWidths)) {
+    const world = worlds[id];
+    assert.equal(world.width, expectedWidth);
+    assert.ok((world.objective.core.x - world.playerStart.x) / 265 < 12);
+    for (let index = 1; index < world.zones.length; index += 1)
+      assert.equal(world.zones[index - 1].x + world.zones[index - 1].w, world.zones[index].x);
+    for (const zone of world.zones)
+      for (const spawn of zone.spawnPoints) {
+        assert.ok(spawn.x >= zone.x && spawn.x <= zone.x + zone.w);
+        assert.ok(spawn.y >= zone.y && spawn.y <= zone.y + zone.h);
+      }
+    for (const relay of world.objective.relayPositions) {
+      assert.ok(relay.x > world.zones.at(-1).x && relay.x < world.width);
+      assert.ok(relay.y > 0 && relay.y < world.height);
+    }
+  }
 });
