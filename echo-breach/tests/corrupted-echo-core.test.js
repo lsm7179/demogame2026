@@ -40,6 +40,20 @@ test("corrupted Echo replay remains inside its spawn zone", () => {
   });
 });
 
+test("corrupted Echo cannot drift indefinitely along a recorded travel path", () => {
+  const limited = core.limitPoseDisplacement(
+    { x: 1500, y: -500, angle: -0.4 },
+    { x: 1000, y: 500 },
+    200
+  );
+  assert.ok(Math.abs(Math.hypot(limited.x - 1000, limited.y - 500) - 200) < 0.001);
+  assert.equal(limited.angle, -0.4);
+  assert.deepEqual(core.limitPoseDisplacement({ x: 1050, y: 520 }, { x: 1000, y: 500 }, 200), {
+    x: 1050,
+    y: 520,
+  });
+});
+
 test("live corruption waits two seconds while completed recordings replay immediately", () => {
   assert.equal(core.playbackTime(1, false), -1);
   assert.equal(core.playbackTime(3, false), 1);

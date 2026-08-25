@@ -1239,6 +1239,7 @@ function spawnEnemy(w) {
     stun: 0,
     corruptCursor: 0,
     corruptOffset: null,
+    corruptOrigin: q.behavior === "corrupted-replay" ? { x: w.x, y: w.y } : null,
     corruptBounds: corruptZone
       ? { x: corruptZone.x, y: corruptZone.y, w: corruptZone.w, h: corruptZone.h }
       : null,
@@ -1397,11 +1398,11 @@ function updateEnemies(dt) {
         if (!e.corruptOffset) e.corruptOffset = { x: e.x - pose.x, y: e.y - pose.y };
         const oldX = e.x;
         const oldY = e.y;
-        const boundedPose = CorruptedEchoCore.clampPoseToZone(
+        const localPose = CorruptedEchoCore.limitPoseDisplacement(
           { x: pose.x + e.corruptOffset.x, y: pose.y + e.corruptOffset.y },
-          e.corruptBounds,
-          e.r + 8
+          e.corruptOrigin
         );
+        const boundedPose = CorruptedEchoCore.clampPoseToZone(localPose, e.corruptBounds, e.r + 8);
         e.x = clamp(boundedPose.x, 55, worldSize().width - 55);
         e.y = clamp(boundedPose.y, 60, worldSize().height - 55);
         e.angle = pose.angle;

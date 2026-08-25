@@ -11,6 +11,7 @@
     projectileSpeed: 210,
     maxShotsPerTick: 2,
     telegraphSeconds: 0.34,
+    maxReplayDisplacement: 190,
   });
 
   function angleLerp(a, b, t) {
@@ -60,5 +61,22 @@
     };
   }
 
-  return Object.freeze({ CONFIG, clampPoseToZone, collectShots, playbackTime, samplePose });
+  function limitPoseDisplacement(pose, origin, maximum = CONFIG.maxReplayDisplacement) {
+    if (!pose || !origin || maximum <= 0) return pose;
+    const dx = pose.x - origin.x;
+    const dy = pose.y - origin.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= maximum) return { ...pose };
+    const scale = maximum / distance;
+    return { ...pose, x: origin.x + dx * scale, y: origin.y + dy * scale };
+  }
+
+  return Object.freeze({
+    CONFIG,
+    clampPoseToZone,
+    collectShots,
+    limitPoseDisplacement,
+    playbackTime,
+    samplePose,
+  });
 });
